@@ -1,0 +1,46 @@
+import type { Metadata } from "next";
+import { Cormorant_Garamond, Jost, Noto_Serif_Bengali } from "next/font/google";
+import { StoreProvider } from "@/context/StoreContext";
+import "./globals.css";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+  display: "swap",
+});
+
+const jost = Jost({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-jost",
+  display: "swap",
+});
+
+const notoBengali = Noto_Serif_Bengali({
+  subsets: ["bengali"],
+  weight: ["300", "400", "500"],
+  variable: "--font-noto-bengali",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "NOKSHA — Handcrafted in Bangladesh",
+  description:
+    "Noksha (নকশা) is a Bangladeshi house of heirloom craft: woven bamboo and Jamdani light, hand-stitched Nakshi Kanthas, and brass-inlaid Chittagong teak jewellery boxes.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={`${cormorant.variable} ${jost.variable} ${notoBengali.variable}`}>
+      <body className="min-h-screen bg-paper text-ink">
+        <StoreProvider>{children}</StoreProvider>
+      </body>
+    </html>
+  );
+}
