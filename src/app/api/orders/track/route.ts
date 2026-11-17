@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import type Database from "better-sqlite3";
 import { getDb } from "@/lib/db";
+
+function ensureCancellationCols(db: Database.Database) {
+  const cols = db.prepare("PRAGMA table_info(orders)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "cancellation_requested")) {
+    db.exec("ALTER TABLE orders ADD COLUMN cancellation_requested INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!cols.some((c) => c.name === "cancellation_reason")) {
+    db.exec("ALTER TABLE orders ADD COLUMN cancellation_reason TEXT NOT NULL DEFAULT ''");
+  }
+}
 
 function normalizeBdPhoneDigits(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -24,6 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     const db = getDb();
+    ensureCancellationCols(db);
     const o = db
       .prepare("SELECT * FROM orders WHERE upper(id) = ?")
       .get(orderId) as
@@ -126,6 +138,7 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb();
+    ensureCancellationCols(db);
     const order = db
       .prepare(
         "SELECT id, customer_phone, status, internal_notes, timeline_json, cancellation_requested FROM orders WHERE upper(id) = ?"
