@@ -47,12 +47,15 @@ interface ShopProps {
 export default function Shop({ category, onCategory, onQuickAdd }: ShopProps) {
   const { products: allProducts, categories } = useStore();
 
+  // Only show regular store products (outside any Exclusive Drop) in The Pieces / Categories
+  const storeProducts = allProducts.filter(
+    (p) => !p.collectionId || p.collectionId.trim() === ""
+  );
+
   const products =
-    category === "all"
-      ? allProducts
-      : category === "exclusive-drops"
-      ? allProducts.filter((p) => Boolean(p.collectionId && p.collectionId.trim() !== ""))
-      : allProducts.filter((p) => p.category === category);
+    category === "all" || category === "exclusive-drops"
+      ? storeProducts
+      : storeProducts.filter((p) => p.category === category);
 
   const dynamicTabs = [
     { id: "all" as CategoryFilter, label: "All pieces", bn: undefined },
@@ -61,7 +64,6 @@ export default function Shop({ category, onCategory, onQuickAdd }: ShopProps) {
       label: c.name,
       bn: c.shortName,
     })),
-    { id: "exclusive-drops" as CategoryFilter, label: "Exclusive Drops", bn: "১/১" },
   ];
 
   // Sliding underline indicator, moved with transform only
@@ -88,13 +90,17 @@ export default function Shop({ category, onCategory, onQuickAdd }: ShopProps) {
       <div className="mx-auto max-w-[1440px]">
         <Reveal className="text-center">
           <p className="eyebrow text-gold">
-            Curated Store &amp; Exclusive Drops
+            Curated Store Categories
           </p>
           <h2 className="font-display mt-5 text-5xl font-light sm:text-7xl">
             The <em>pieces</em>
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-ink-soft">
-            Browse our signature store categories with multi-piece availability alongside one-of-one collector pieces from our numbered Drops.
+            Browse our signature store categories with multi-piece availability. Looking for one-of-one collector pieces? Visit our{" "}
+            <Link href="/drops" className="text-ink underline underline-offset-4 hover:text-gold">
+              Exclusive Drops
+            </Link>
+            .
           </p>
         </Reveal>
 
@@ -124,6 +130,13 @@ export default function Shop({ category, onCategory, onQuickAdd }: ShopProps) {
                 </button>
               );
             })}
+            <Link
+              href="/drops"
+              className="press whitespace-nowrap pb-4 text-mute hover:text-ink"
+            >
+              <span className="eyebrow !tracking-[0.22em]">Exclusive Drops</span>
+              <span className="ml-2 text-xs text-gold/90">· ১/১</span>
+            </Link>
             <span className="absolute bottom-0 left-0 h-px w-full bg-[var(--hairline)]" />
             <span
               className="absolute bottom-0 left-0 h-px w-px origin-left bg-ink"
