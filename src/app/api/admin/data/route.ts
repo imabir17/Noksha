@@ -53,6 +53,8 @@ export async function GET() {
       internal_notes: string;
       items_json: string;
       timeline_json: string;
+      cancellation_requested?: number;
+      cancellation_reason?: string;
       created_at: string;
       updated_at: string;
     }[];
@@ -101,6 +103,8 @@ export async function GET() {
         internalNotes: o.internal_notes,
         items,
         timeline,
+        cancellationRequested: Boolean(o.cancellation_requested),
+        cancellationReason: o.cancellation_reason || "",
         createdAt: o.created_at,
         updatedAt: o.updated_at,
       };
@@ -500,6 +504,86 @@ export async function POST(req: NextRequest) {
       }
 
       logAudit(user, "update_order", "order", String(id), `Status → ${status}, Payment → ${paymentStatus}`);
+      return NextResponse.json({ ok: true });
+    }
+
+    // 1b. Resolve Customer Cancellation Request (approve or dismiss)
+    if (action === "resolve_cancellation") {
+      const { id, decision } = body;
+      const existing = db
+        .prepare("SELECT status, items_json, timeline_json FROM orders WHERE id = ?")
+        .get(id) as { status: string; items_json: string; timeline_json: string } | undefined;
+      if (!existing) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+      let timeline: { status: string; at: string; by: string; note: string }[] = [];
+      try {
+        timeline = JSON.parse(existing.timeline_json);
+      } catch {
+        // ignore
+      }
+
+      if (decision === "approve") {
+        timeline.push({
+          status: "cancelled",
+          at: now,
+          by: user.email,
+          note: "Customer cancellation request approved",
+        });
+
+        db.prepare(
+          `UPDATE orders
+           SET status = 'cancelled', cancellation_requested = 0, timeline_json = ?, updated_at = ?
+           WHERE id = ?`
+        ).run(JSON.stringify(timeline), now, String(id));
+
+        // Restore stock for cancelled items
+        try {
+          const items = JSON.parse(existing.items_json) as { productId?: string; quantity?: number }[];
+          for (const item of items) {
+            if (!item.productId) continue;
+            const prod = db
+              .prepare("SELECT collection_id, stock_qty, low_stock_threshold FROM products WHERE id = ?")
+              .get(item.productId) as
+              | { collection_id: string; stock_qty: number; low_stock_threshold: number }
+              | undefined;
+            if (!prod) continue;
+            if (prod.collection_id) {
+              db.prepare(
+                "UPDATE products SET status = 'ready', status_label = 'One of One', stock_qty = 1, acquired_by = '', updated_at = ? WHERE id = ?"
+              ).run(now, item.productId);
+            } else {
+              const restored = prod.stock_qty + (item.quantity || 1);
+              const nextStatus = restored <= prod.low_stock_threshold ? "limited" : "ready";
+              const nextLabel = restored <= prod.low_stock_threshold ? `Only ${restored} Left` : "In Stock";
+              db.prepare(
+                "UPDATE products SET status = ?, status_label = ?, stock_qty = ?, updated_at = ? WHERE id = ?"
+              ).run(nextStatus, nextLabel, restored, now, item.productId);
+            }
+          }
+          revalidatePath("/");
+          revalidatePath("/shop");
+        } catch {
+          // ignore
+        }
+
+        logAudit(user, "approve_cancellation", "order", String(id), "Approved customer cancellation request");
+      } else {
+        timeline.push({
+          status: existing.status,
+          at: now,
+          by: user.email,
+          note: "Customer cancellation request dismissed",
+        });
+
+        db.prepare(
+          `UPDATE orders
+           SET cancellation_requested = 0, timeline_json = ?, updated_at = ?
+           WHERE id = ?`
+        ).run(JSON.stringify(timeline), now, String(id));
+
+        logAudit(user, "dismiss_cancellation", "order", String(id), "Dismissed customer cancellation request");
+      }
+
       return NextResponse.json({ ok: true });
     }
 

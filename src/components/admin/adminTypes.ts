@@ -14,7 +14,7 @@ export function canAccessSection(role: StaffRole, section: string): boolean {
   if (role === "manager") {
     return section !== "staff";
   }
-  return ["overview", "orders", "customers", "leads", "abandoned"].includes(section);
+  return ["overview", "orders", "cancellations", "customers", "leads", "abandoned"].includes(section);
 }
 
 export interface AdminOrder {
@@ -48,6 +48,8 @@ export interface AdminOrder {
     image?: string;
   }[];
   timeline: { status: string; at: string; by: string; note: string }[];
+  cancellationRequested?: boolean;
+  cancellationReason?: string;
   createdAt: string;
   updatedAt: string;
 }

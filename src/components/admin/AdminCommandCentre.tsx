@@ -29,6 +29,7 @@ import {
   UserCheck,
   Users,
   X,
+  XCircle,
 } from "lucide-react";
 import { DropStatus, formatBDT, PillarId, ProductStatus } from "@/data/nokshaData";
 import { DbCategory, DbCollection, DbProduct } from "@/lib/db";
@@ -45,6 +46,7 @@ type AdminTab =
   | "overview"
   | "analytics"
   | "orders"
+  | "cancellations"
   | "collections"
   | "products"
   | "customers"
@@ -520,6 +522,12 @@ export default function AdminCommandCentre() {
       label: "Orders Pipeline",
       icon: <ShoppingBag className="w-4 h-4 shrink-0" />,
       badge: metrics?.pendingOrdersCount,
+    },
+    {
+      id: "cancellations",
+      label: "Cancellation Requests",
+      icon: <XCircle className="w-4 h-4 shrink-0" />,
+      badge: data.orders.filter((o) => o.cancellationRequested).length,
     },
     {
       id: "collections",
@@ -1582,6 +1590,166 @@ export default function AdminCommandCentre() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ───────────────────────── TAB 3A: CANCELLATION REQUESTS ───────────────────────── */}
+        {activeTab === "cancellations" && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-[13px] text-[#14110F] font-medium">
+                Review customer order cancellation requests submitted before shipment. Approving a cancellation marks the order as <strong>Cancelled</strong> and automatically restores product stock.
+              </p>
+            </div>
+
+            {(() => {
+              const pendingCancels = data.orders.filter((o) => o.cancellationRequested);
+              const cancelledHistory = data.orders.filter((o) => o.status === "cancelled" && !o.cancellationRequested);
+
+              return (
+                <div className="space-y-8">
+                  <div className={`${cardCls} overflow-hidden`}>
+                    <div className="px-5 py-3.5 bg-[#EFE7DA] border-b border-[#D4C5B0] flex items-center justify-between">
+                      <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#8C2F2F]">
+                        Pending Cancellation Requests ({pendingCancels.length})
+                      </h2>
+                    </div>
+
+                    {pendingCancels.length === 0 ? (
+                      <div className="p-8 text-center text-[13px] text-[#2D2620] font-medium">
+                        No pending cancellation requests right now.
+                      </div>
+                    ) : (
+                      <table className="w-full text-[13px] text-left border-collapse">
+                        <thead>
+                          <tr>
+                            <th className={thCls}>Order</th>
+                            <th className={thCls}>Customer</th>
+                            <th className={thCls}>Pieces &amp; Total</th>
+                            <th className={thCls}>Current Stage</th>
+                            <th className={thCls}>Customer Reason</th>
+                            <th className={`${thCls} text-right`}>Decision</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E6DDD0]">
+                          {pendingCancels.map((o) => (
+                            <tr key={o.id} className="hover:bg-[#FBF8F3]">
+                              <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
+                                <p>{o.id}</p>
+                                <p className="text-[11px] font-normal text-[#2D2620]">
+                                  {new Date(o.createdAt).toLocaleDateString("en-GB")}
+                                </p>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <p className="font-bold text-[#14110F]">{o.customerName}</p>
+                                <p className="font-num text-[#1E1915]">{o.customerPhone}</p>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <p className="text-[#14110F] font-medium">
+                                  {o.items.map((i) => `${i.name} ×${i.quantity}`).join(", ")}
+                                </p>
+                                <p className="font-num font-bold text-[#14110F] mt-0.5">
+                                  {formatBDT(o.totalBDT)} ({o.paymentMethod.toUpperCase()})
+                                </p>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <StatusBadge status={o.status} />
+                              </td>
+                              <td className="py-3.5 px-4 max-w-xs">
+                                <p className="text-[#8C2F2F] font-medium">
+                                  “{o.cancellationReason || "Requested by customer"}”
+                                </p>
+                              </td>
+                              <td className="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
+                                <a
+                                  href={toBdWhatsApp(
+                                    o.customerPhone,
+                                    `আসসালামু আলাইকুম ${o.customerName}, we received your cancellation request for Noksha order ${o.id}.`
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#1B5E55] hover:bg-[#144740] text-white text-[12px] font-bold inline-flex items-center gap-1"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  WhatsApp
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Approve cancellation for order ${o.id} and restore stock?`)) {
+                                      postAction(
+                                        { action: "resolve_cancellation", id: o.id, decision: "approve" },
+                                        `Approved cancellation for ${o.id}`
+                                      );
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-[#8C2F2F] hover:bg-[#702222] text-white text-[12px] font-bold cursor-pointer"
+                                >
+                                  Approve &amp; Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    postAction(
+                                      { action: "resolve_cancellation", id: o.id, decision: "dismiss" },
+                                      `Dismissed cancellation request for ${o.id}`
+                                    )
+                                  }
+                                  className="px-3 py-1.5 rounded-lg bg-[#EFE7DA] hover:bg-[#E2D5C1] text-[#14110F] border border-[#B8A68E] text-[12px] font-bold cursor-pointer"
+                                >
+                                  Dismiss
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  {cancelledHistory.length > 0 && (
+                    <div className={`${cardCls} overflow-hidden`}>
+                      <div className="px-5 py-3.5 bg-[#EFE7DA] border-b border-[#D4C5B0]">
+                        <h3 className="text-[13px] font-bold uppercase tracking-wider text-[#14110F]">
+                          Cancelled Orders History ({cancelledHistory.length})
+                        </h3>
+                      </div>
+                      <table className="w-full text-[13px] text-left border-collapse">
+                        <thead>
+                          <tr>
+                            <th className={thCls}>Order</th>
+                            <th className={thCls}>Customer</th>
+                            <th className={thCls}>Total</th>
+                            <th className={thCls}>Reason</th>
+                            <th className={thCls}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E6DDD0]">
+                          {cancelledHistory.map((o) => (
+                            <tr key={o.id} className="hover:bg-[#FBF8F3]">
+                              <td className="py-3 px-4 font-num font-bold text-[#14110F]">{o.id}</td>
+                              <td className="py-3 px-4">
+                                <span className="font-bold text-[#14110F]">{o.customerName}</span> ·{" "}
+                                <span className="font-num text-[#2D2620]">{o.customerPhone}</span>
+                              </td>
+                              <td className="py-3 px-4 font-num font-bold text-[#14110F]">
+                                {formatBDT(o.totalBDT)}
+                              </td>
+                              <td className="py-3 px-4 text-[#2D2620]">
+                                {o.cancellationReason || "Cancelled by staff"}
+                              </td>
+                              <td className="py-3 px-4">
+                                <StatusBadge status="cancelled" />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
