@@ -15,6 +15,7 @@ const NAV = [
   { href: "/drops", label: "Drops" },
   { href: "/#categories", label: "Categories" },
   { href: "/about", label: "About" },
+  { href: "/track-order", label: "Track Order" },
 ];
 
 export default function Header({ bagCount, onOpenBag, transparentHero = true }: HeaderProps) {
@@ -78,10 +79,10 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
           </Link>
 
           {/* Right: navigation + bag */}
-          <div className="flex items-center justify-end gap-9">
-            <nav className="hidden items-center gap-9 lg:flex">
+          <div className="flex items-center justify-end gap-7">
+            <nav className="hidden items-center gap-7 lg:flex">
               {NAV.slice(2).map((item) => (
-                <Link key={item.href} href={item.href} className="nav-link eyebrow !tracking-[0.24em]">
+                <Link key={item.href} href={item.href} className="nav-link eyebrow !tracking-[0.22em] whitespace-nowrap">
                   {item.label}
                 </Link>
               ))}
