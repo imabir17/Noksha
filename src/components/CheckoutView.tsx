@@ -16,8 +16,9 @@ import {
 } from "@/lib/pricing";
 
 const PAYMENTS: { id: PaymentMethod; title: string; note: string }[] = [
+  { id: "uddoktapay", title: "Pay Online (UddoktaPay)", note: "bKash, Nagad, Rocket, Upay or Card — Sandbox test gateway ready." },
   { id: "cod", title: "Cash on delivery", note: "Pay in taka when your piece arrives and you have inspected it." },
-  { id: "bkash", title: "bKash / Nagad", note: "Send the total to our merchant number, then enter your transaction ID." },
+  { id: "bkash", title: "bKash / Nagad (Manual)", note: "Send the total to our merchant number, then enter your transaction ID." },
   { id: "whatsapp", title: "Arrange with client care", note: "We will confirm payment and delivery with you on WhatsApp." },
 ];
 
@@ -57,6 +58,52 @@ export default function CheckoutView() {
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [errors, setErrors] = useState<Errors>({});
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [gatewayNotice, setGatewayNotice] = useState<string | null>(null);
+
+  // Handle UddoktaPay redirect callback (?uddoktapay=success&invoice_id=...&order_id=...)
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const statusParam = params.get("uddoktapay");
+    const invoiceId = params.get("invoice_id");
+    const orderId = params.get("order_id");
+
+    if (statusParam === "cancelled") {
+      setGatewayNotice("Online payment was cancelled. You can retry with UddoktaPay or choose Cash on Delivery.");
+      window.history.replaceState({}, "", "/checkout");
+      return;
+    }
+
+    if (statusParam === "success" && invoiceId) {
+      fetch("/api/payments/uddoktapay/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoice_id: invoiceId, order_id: orderId }),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          const baseOrder = lastOrder;
+          if (baseOrder) {
+            const updatedOrder: PlacedOrder = {
+              ...baseOrder,
+              trxId: res.transaction_id || invoiceId,
+            };
+            saveOrder(updatedOrder);
+            setPlaced(updatedOrder);
+          }
+          clearBag();
+          refreshStore();
+          window.history.replaceState({}, "", "/checkout");
+        })
+        .catch(() => {
+          if (lastOrder) {
+            setPlaced(lastOrder);
+            clearBag();
+          }
+        });
+    }
+  }, [hydrated, lastOrder, saveOrder, clearBag, refreshStore]);
 
   // Remember delivery details between visits (not payment details).
   useEffect(() => {
@@ -129,8 +176,9 @@ export default function CheckoutView() {
     return er;
   };
 
-  const placeOrder = (e: React.FormEvent) => {
+  const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     const er = validate();
     setErrors(er);
     if (Object.keys(er).length > 0) {
@@ -162,23 +210,53 @@ export default function CheckoutView() {
       // Ignore storage errors
     }
 
-    fetch("/api/store", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "place_order",
-        order,
-        sessionId,
-        visitorId,
-      }),
-    })
-      .then(() => refreshStore())
-      .catch(() => {});
+    setSubmitting(true);
+    setGatewayNotice(null);
+
+    try {
+      await fetch("/api/store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "place_order",
+          order,
+          sessionId,
+          visitorId,
+        }),
+      });
+    } catch {
+      // ignore
+    }
 
     trackEvent("order_placed", { path: "/checkout", step: "order_completed" });
     saveOrder(order);
+
+    if (payment === "uddoktapay") {
+      try {
+        const res = await fetch("/api/payments/uddoktapay/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order, origin: window.location.origin }),
+        });
+        const data = await res.json();
+        if (res.ok && data.payment_url) {
+          window.location.href = data.payment_url;
+          return;
+        }
+        setGatewayNotice(data.error || "Could not open UddoktaPay checkout. Please try again.");
+        setSubmitting(false);
+        return;
+      } catch {
+        setGatewayNotice("Network error connecting to UddoktaPay. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    refreshStore().catch(() => {});
     setPlaced(order);
     clearBag();
+    setSubmitting(false);
     window.scrollTo({ top: 0 });
   };
 
@@ -368,8 +446,24 @@ export default function CheckoutView() {
                   <span className="font-display text-3xl tabular-nums">{formatBDT(price.total)}</span>
                 </div>
 
-                <button type="submit" className="press btn-solid mt-7 w-full cursor-pointer">
-                  Place order
+                {gatewayNotice && (
+                  <p className="mt-4 border border-alta/40 bg-alta/10 px-4 py-3 text-xs text-alta">
+                    {gatewayNotice}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="press btn-solid mt-7 w-full cursor-pointer disabled:opacity-60"
+                >
+                  {submitting
+                    ? payment === "uddoktapay"
+                      ? "Redirecting to UddoktaPay…"
+                      : "Placing order…"
+                    : payment === "uddoktapay"
+                    ? "Proceed to UddoktaPay"
+                    : "Place order"}
                 </button>
                 <p className="mt-4 text-center text-xs leading-relaxed text-mute">
                   Wrapped in kora muslin at no charge. We will contact you to confirm before dispatch.
@@ -387,7 +481,13 @@ export default function CheckoutView() {
 /* ───────── Confirmation view ───────── */
 function Confirmation({ order }: { order: PlacedOrder }) {
   const paymentLabel =
-    order.payment === "cod" ? "Cash on delivery" : order.payment === "bkash" ? "bKash / Nagad" : "Arranged with client care";
+    order.payment === "uddoktapay"
+      ? "UddoktaPay (Online)"
+      : order.payment === "cod"
+      ? "Cash on delivery"
+      : order.payment === "bkash"
+      ? "bKash / Nagad"
+      : "Arranged with client care";
 
   const lines = order.items
     .map((i) => `• ${i.product.name} (${i.selectedColor}) × ${i.quantity} — ${formatBDT(i.product.priceBDT * i.quantity)}`)

@@ -61,7 +61,7 @@ export function isValidBdPhone(value: string): boolean {
   return /^(\+?88)?01[3-9]\d{8}$/.test(digits);
 }
 
-export type PaymentMethod = "cod" | "bkash" | "whatsapp";
+export type PaymentMethod = "cod" | "bkash" | "whatsapp" | "uddoktapay";
 
 export interface PlacedOrder {
   id: string;
