@@ -13,7 +13,7 @@ interface HeaderProps {
 const NAV = [
   { href: "/#collections", label: "Collections" },
   { href: "/#shop", label: "The Pieces" },
-  { href: "/#atelier", label: "The Atelier" },
+  { href: "/about", label: "About" },
   { href: "/#circle", label: "Founding Circle" },
 ];
 
@@ -47,9 +47,9 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
           {/* Left: navigation */}
           <nav className="hidden items-center gap-9 lg:flex">
             {NAV.slice(0, 2).map((item) => (
-              <a key={item.href} href={item.href} className="nav-link eyebrow !tracking-[0.24em]">
+              <Link key={item.href} href={item.href} className="nav-link eyebrow !tracking-[0.24em]">
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
           <button
@@ -81,9 +81,9 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
           <div className="flex items-center justify-end gap-9">
             <nav className="hidden items-center gap-9 lg:flex">
               {NAV.slice(2).map((item) => (
-                <a key={item.href} href={item.href} className="nav-link eyebrow !tracking-[0.24em]">
+                <Link key={item.href} href={item.href} className="nav-link eyebrow !tracking-[0.24em]">
                   {item.label}
-                </a>
+                </Link>
               ))}
             </nav>
             <button
@@ -103,7 +103,7 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
         <div className="overlay-menu fixed inset-0 z-30 bg-paper pt-28 lg:hidden">
           <nav className="flex flex-col px-8">
             {NAV.map((item, i) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
@@ -111,7 +111,7 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
                 style={{ "--d": `${120 + i * 60}ms` } as React.CSSProperties}
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
           <p className="eyebrow mt-12 px-8 text-mute">Dhaka · Online Atelier · Nationwide Delivery</p>

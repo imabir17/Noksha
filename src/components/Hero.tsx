@@ -1,6 +1,15 @@
+"use client";
+
 import React from "react";
+import { useStore } from "@/context/StoreContext";
 
 export default function Hero() {
+  const { siteContent } = useStore();
+  const eyebrow = siteContent.hero_eyebrow || "The Inaugural Collection";
+  const line1 = siteContent.hero_title_line1 || "Heirlooms for the";
+  const line2 = siteContent.hero_title_line2 || "Bengali home.";
+  const bengali = siteContent.hero_bengali || "আলো, সুতো ও কাঠের কাব্য";
+
   return (
     <section id="top" className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-espresso text-paper">
       <img
@@ -14,21 +23,21 @@ export default function Hero() {
       <div className="relative mx-auto flex h-full max-w-[1440px] flex-col justify-end px-5 pb-16 sm:px-10 sm:pb-20">
         <div className="max-w-3xl">
           <p className="hero-line eyebrow text-gold-soft" style={{ "--d": "200ms" } as React.CSSProperties}>
-            The Inaugural Collection
+            {eyebrow}
           </p>
           <h1
             className="hero-line font-display mt-6 text-[3.1rem] font-light leading-[0.98] tracking-[-0.01em] sm:text-7xl lg:text-[6.5rem]"
             style={{ "--d": "320ms" } as React.CSSProperties}
           >
-            Heirlooms for the
+            {line1}
             <br />
-            <em className="font-light">Bengali home.</em>
+            <em className="font-light">{line2}</em>
           </h1>
           <p
             className="hero-line font-bengali mt-6 text-lg font-light text-paper/80 sm:text-xl"
             style={{ "--d": "460ms" } as React.CSSProperties}
           >
-            আলো, সুতো ও কাঠের কাব্য
+            {bengali}
           </p>
           <div
             className="hero-line mt-10 flex flex-wrap items-center gap-x-10 gap-y-5"
@@ -37,8 +46,8 @@ export default function Hero() {
             <a href="#shop" className="press btn-ghost on-dark">
               Discover the pieces
             </a>
-            <a href="#atelier" className="link-draw eyebrow !tracking-[0.24em] text-paper/90">
-              Our craft <span className="arrow">→</span>
+            <a href="/about" className="link-draw eyebrow !tracking-[0.24em] text-paper/90">
+              Our story <span className="arrow">→</span>
             </a>
           </div>
         </div>

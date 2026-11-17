@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProductDetailView from "@/components/ProductDetailView";
 import { NOKSHA_PRODUCTS } from "@/data/nokshaData";
+import { getAllProducts, getProductById } from "@/lib/db";
 
-export function generateStaticParams() {
-  return NOKSHA_PRODUCTS.map((p) => ({ id: p.id }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -13,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = NOKSHA_PRODUCTS.find((p) => p.id === id);
+  const product = getProductById(id) ?? NOKSHA_PRODUCTS.find((p) => p.id === id);
   if (!product) {
     return { title: "Piece Not Found | NOKSHA" };
   }
@@ -29,16 +28,17 @@ export default async function PiecePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = NOKSHA_PRODUCTS.find((p) => p.id === id);
+  const allProducts = getAllProducts(false);
+  const product = getProductById(id) ?? NOKSHA_PRODUCTS.find((p) => p.id === id);
 
   if (!product) {
     notFound();
   }
 
-  const sameCategory = NOKSHA_PRODUCTS.filter(
+  const sameCategory = allProducts.filter(
     (p) => p.category === product.category && p.id !== product.id
   );
-  const others = NOKSHA_PRODUCTS.filter((p) => p.category !== product.category);
+  const others = allProducts.filter((p) => p.category !== product.category);
   const related = [...sameCategory, ...others].slice(0, 3);
 
   return <ProductDetailView product={product} related={related} />;

@@ -6,13 +6,12 @@ import { Collections, Manifesto } from "@/components/Story";
 import Shop, { CategoryFilter } from "@/components/Shop";
 import { Atelier, FoundingCircle, Footer } from "@/components/Sections";
 import { useStore } from "@/context/StoreContext";
-import { PillarId } from "@/data/nokshaData";
 
 export default function HomePage() {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const { addToBag, setPromo } = useStore();
 
-  const explore = (id: PillarId) => {
+  const explore = (id: CategoryFilter) => {
     setCategory(id);
     document.getElementById("shop")?.scrollIntoView({ behavior: "smooth" });
   };

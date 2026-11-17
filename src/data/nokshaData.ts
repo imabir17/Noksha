@@ -1,11 +1,13 @@
-export type PillarId = "light-shades" | "nakshi-kantha" | "jewelry-boxes";
+export type PillarId = "light-shades" | "nakshi-kantha" | "jewelry-boxes" | (string & {});
 
-export type ProductStatus = "ready" | "limited" | "waitlist";
+export type ProductStatus = "ready" | "limited" | "waitlist" | "sold" | "hidden";
 
 export interface ColorSwatch {
   name: string;
   hex: string;
 }
+
+export type DropStatus = "upcoming" | "prebooking" | "live" | "archived";
 
 export interface NokshaProduct {
   id: string;
@@ -26,6 +28,12 @@ export interface NokshaProduct {
   image: string;
   accentColor: string;
   colors: ColorSwatch[];
+  stockQty?: number;
+  collectionId?: string;
+  collectionName?: string;
+  dropNumber?: string;
+  dropStatus?: DropStatus;
+  acquiredBy?: string;
 }
 
 export interface FoundingPillar {
@@ -121,7 +129,7 @@ export const FOUNDING_PILLARS: FoundingPillar[] = [
   },
   {
     id: "jewelry-boxes",
-    title: "Oshongkar Jewelry Boxes",
+    title: "Wooden Jewelry Boxes",
     bengaliTitle: "কাঠের গহনার বাক্স",
     subtitle: "Hand-Carved Timber & Alpona Brass Chests",
     origin: "Chattogram & Sylhet Master Carvers",
@@ -399,7 +407,7 @@ export const ARTISAN_GUILDS: ArtisanGuild[] = [
     pillarId: "jewelry-boxes",
     region: "Chattogram & Sylhet",
     bengaliRegion: "চট্টগ্রাম ও সিলেট",
-    guildName: "Oshongkar Fine Timber & Brass Guild",
+    guildName: "Chattogram Fine Timber & Brass Guild",
     craftForm: "Teak Joinery, Brass Wire Inlay & Alpona Brushwork",
     leadArtisanNote:
       "\"Wood seasoned slowly remembers the forest; brass inlay turns a box into an heirloom your granddaughter will open.\"",

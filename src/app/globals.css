@@ -482,6 +482,42 @@
   );
 }
 
+/* Crisp, high-visibility typography & contrast for Admin Command Centre */
+.admin-ui {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  color: #14110F;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+.admin-ui table th {
+  color: #1E1915;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.admin-ui table td {
+  color: #14110F;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.admin-ui label {
+  color: #1E1915;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.admin-ui input,
+.admin-ui select,
+.admin-ui textarea {
+  color: #14110F;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal-media,

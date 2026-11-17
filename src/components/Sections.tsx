@@ -79,7 +79,19 @@ export function FoundingCircle({ onJoined }: CircleProps) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
-    setJoined({ name: name.trim(), no: String(Math.floor(100 + Math.random() * 400)).padStart(3, "0") });
+    const no = String(Math.floor(100 + Math.random() * 400)).padStart(3, "0");
+    setJoined({ name: name.trim(), no });
+    fetch("/api/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "join_circle",
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        memberNo: no,
+      }),
+    }).catch(() => {});
     onJoined();
   };
 
@@ -196,9 +208,10 @@ export function Footer() {
           <div>
             <p className="eyebrow !text-[0.6rem] text-gold-soft">House</p>
             <ul className="mt-5 space-y-2 text-sm text-paper/70">
-              <li><a className="nav-link" href="#collections">Collections</a></li>
-              <li><a className="nav-link" href="#atelier">The Atelier</a></li>
-              <li><a className="nav-link" href="#circle">Founding Circle</a></li>
+              <li><a className="nav-link" href="/about">Our Story</a></li>
+              <li><a className="nav-link" href="/#collections">Collections</a></li>
+              <li><a className="nav-link" href="/#atelier">The Atelier</a></li>
+              <li><a className="nav-link" href="/#circle">Founding Circle</a></li>
             </ul>
           </div>
           <div>
@@ -209,7 +222,17 @@ export function Footer() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (email.trim()) setDone(true);
+                  if (email.trim()) {
+                    fetch("/api/store", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "subscribe_newsletter",
+                        email: email.trim(),
+                      }),
+                    }).catch(() => {});
+                    setDone(true);
+                  }
                 }}
                 className="mt-3 flex items-end gap-4"
               >
