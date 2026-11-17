@@ -11,9 +11,9 @@ interface HeaderProps {
 }
 
 const NAV = [
+  { href: "/shop", label: "Shop" },
   { href: "/drops", label: "Drops" },
   { href: "/#categories", label: "Categories" },
-  { href: "/#shop", label: "The Pieces" },
   { href: "/about", label: "About" },
 ];
 
