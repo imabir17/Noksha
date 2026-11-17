@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Search } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import PromoField from "@/components/PromoField";
 import { Footer } from "@/components/Sections";
@@ -18,14 +18,12 @@ import {
 const PAYMENTS: { id: PaymentMethod; title: string; note: string }[] = [
   { id: "uddoktapay", title: "Pay Online (UddoktaPay)", note: "bKash, Nagad, Rocket, Upay or Card — Sandbox test gateway ready." },
   { id: "cod", title: "Cash on delivery", note: "Pay in taka when your piece arrives and you have inspected it." },
-  { id: "bkash", title: "bKash / Nagad (Manual)", note: "Send the total to our merchant number, then enter your transaction ID." },
   { id: "whatsapp", title: "Arrange with client care", note: "We will confirm payment and delivery with you on WhatsApp." },
 ];
 
-const MERCHANT_NUMBER = "01700-665742";
 const CARE_NUMBER = "8801973673217";
 
-type Errors = Partial<Record<"name" | "phone" | "email" | "address" | "trxId", string>>;
+type Errors = Partial<Record<"name" | "phone" | "email" | "address", string>>;
 
 export default function CheckoutView() {
   const {
@@ -128,7 +126,7 @@ export default function CheckoutView() {
     if (step === "recipient_filled" && form.address.trim().length >= 6) {
       step = "delivery_filled";
     }
-    if (step === "delivery_filled" && (payment !== "bkash" || form.trxId.trim().length >= 4)) {
+    if (step === "delivery_filled") {
       step = "payment_selected";
     }
 
@@ -172,7 +170,6 @@ export default function CheckoutView() {
     if (!isValidBdPhone(form.phone)) er.phone = "Enter a Bangladesh mobile number, e.g. 01711 000000.";
     if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) er.email = "That email address looks incomplete.";
     if (form.address.trim().length < 8) er.address = "Please add house, road and area so we can deliver.";
-    if (payment === "bkash" && form.trxId.trim().length < 6) er.trxId = "Enter the transaction ID from your bKash / Nagad receipt.";
     return er;
   };
 
@@ -195,7 +192,7 @@ export default function CheckoutView() {
       address: form.address.trim(),
       notes: form.notes.trim(),
       payment,
-      trxId: payment === "bkash" ? form.trxId.trim() : "",
+      trxId: "",
       giftNote: giftNote.trim(),
       promoCode: promo ?? "",
       items: bag,
@@ -372,19 +369,6 @@ export default function CheckoutView() {
                   </label>
                 ))}
               </div>
-
-              {payment === "bkash" && (
-                <div className="swap-fade mt-6 border border-[var(--hairline)] bg-paper/70 p-6">
-                  <p className="eyebrow !text-[0.6rem] text-mute">Send exactly</p>
-                  <p className="font-display mt-2 text-3xl font-light tabular-nums">{formatBDT(price.total)}</p>
-                  <p className="mt-3 text-sm text-ink-soft">
-                    to bKash / Nagad merchant <span className="font-num text-ink">{MERCHANT_NUMBER}</span>
-                  </p>
-                  <Field label="Transaction ID" error={errors.trxId} className="mt-4">
-                    <input className="field uppercase" value={form.trxId} onChange={set("trxId")} placeholder="e.g. BGD9X72KLM" {...field("trxId")} />
-                  </Field>
-                </div>
-              )}
             </div>
 
             {/* Right: summary */}
@@ -473,7 +457,9 @@ export default function CheckoutView() {
           </form>
         </div>
       </main>
-      <Footer />
+      <div className="print:hidden">
+        <Footer />
+      </div>
     </>
   );
 }
@@ -485,8 +471,6 @@ function Confirmation({ order }: { order: PlacedOrder }) {
       ? "UddoktaPay (Online)"
       : order.payment === "cod"
       ? "Cash on delivery"
-      : order.payment === "bkash"
-      ? "bKash / Nagad"
       : "Arranged with client care";
 
   const lines = order.items
@@ -523,17 +507,44 @@ function Confirmation({ order }: { order: PlacedOrder }) {
               Your order has been recorded. Please send it to our client care team on WhatsApp so we can confirm
               availability, payment and delivery with you.
             </p>
-            <a
-              href={`https://wa.me/${CARE_NUMBER}?text=${encodeURIComponent(message)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="press btn-solid mt-9"
-            >
-              Send order on WhatsApp
-            </a>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-4 print:hidden">
+              <a
+                href={`https://wa.me/${CARE_NUMBER}?text=${encodeURIComponent(message)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="press btn-solid"
+              >
+                Send order on WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="press inline-flex items-center gap-2 border border-ink px-6 py-4 eyebrow !tracking-[0.22em] text-ink hover:bg-ink hover:text-paper transition-colors cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Save Order Details as PDF
+              </button>
+              <Link
+                href={`/track-order?phone=${encodeURIComponent(order.phone)}`}
+                className="press inline-flex items-center gap-2 border border-[var(--hairline)] px-6 py-4 eyebrow !tracking-[0.22em] text-ink-soft hover:border-ink hover:text-ink transition-colors"
+              >
+                <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Track Order
+              </Link>
+            </div>
           </div>
 
-          <div className="mt-16 border border-[var(--hairline)] bg-paper p-7 sm:p-10">
+          <div className="mt-16 border border-[var(--hairline)] bg-paper p-7 sm:p-10 print:mt-8 print:border-ink/30">
+            <div className="hidden print:flex items-center justify-between border-b border-[var(--hairline)] pb-6 mb-6">
+              <div>
+                <p className="font-display text-2xl">NOKSHA · নকশা</p>
+                <p className="eyebrow !text-[0.55rem] text-mute mt-1">Order Confirmation Receipt</p>
+              </div>
+              <div className="text-right text-xs text-mute">
+                <p className="font-num text-ink font-medium">{order.id}</p>
+                <p className="font-num">{new Date(order.placedAt).toLocaleDateString("en-GB")}</p>
+              </div>
+            </div>
             <ul className="divide-y divide-[var(--hairline)]">
               {order.items.map((i) => (
                 <li key={`${i.product.id}-${i.selectedColor}`} className="flex gap-5 py-5">
@@ -596,7 +607,9 @@ function Confirmation({ order }: { order: PlacedOrder }) {
           </div>
         </div>
       </main>
-      <Footer />
+      <div className="print:hidden">
+        <Footer />
+      </div>
     </>
   );
 }

@@ -37,7 +37,7 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
   return (
     <>
       <header
-        className={`site-header fixed inset-x-0 top-0 z-40 border-b ${
+        className={`site-header print:hidden fixed inset-x-0 top-0 z-40 border-b ${
           solid
             ? "bg-paper/92 backdrop-blur-md text-ink border-[var(--hairline)]"
             : "bg-transparent text-paper border-transparent"

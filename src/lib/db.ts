@@ -35,7 +35,7 @@ declare global {
   var __nokshaDbVer: number | undefined;
 }
 
-const DB_SCHEMA_VERSION = 7;
+const DB_SCHEMA_VERSION = 8;
 
 export function getDb(): Database.Database {
   if (global.__nokshaDb) {
@@ -262,6 +262,8 @@ function initSchema(db: Database.Database) {
   ensureCol("collections", "release_date", "TEXT NOT NULL DEFAULT 'Live Now'");
   ensureCol("products", "collection_id", "TEXT NOT NULL DEFAULT ''");
   ensureCol("products", "acquired_by", "TEXT NOT NULL DEFAULT ''");
+  ensureCol("orders", "cancellation_requested", "INTEGER NOT NULL DEFAULT 0");
+  ensureCol("orders", "cancellation_reason", "TEXT NOT NULL DEFAULT ''");
 }
 
 function seedIfNeeded(db: Database.Database) {

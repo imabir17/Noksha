@@ -212,6 +212,7 @@ export function Footer() {
               <li><a className="nav-link" href="/about">Our Story</a></li>
               <li><Link className="nav-link" href="/drops">Exclusive Drops</Link></li>
               <li><a className="nav-link" href="/#categories">Categories</a></li>
+              <li><Link className="nav-link" href="/track-order">Track Order</Link></li>
               <li><a className="nav-link" href="/#atelier">The Atelier</a></li>
               <li><a className="nav-link" href="/#circle">Founding Circle</a></li>
             </ul>
