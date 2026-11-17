@@ -65,7 +65,7 @@ export default function CollectionDetailView({
         <div className="relative mx-auto flex h-full max-w-[1440px] flex-col justify-between px-5 pb-14 pt-28 sm:px-10 sm:pb-20 sm:pt-32">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <Link
-              href="/#collections"
+              href="/drops"
               className="link-draw eyebrow !tracking-[0.24em] text-paper/85"
             >
               <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.25} />
@@ -318,7 +318,7 @@ export default function CollectionDetailView({
                     Other <em>exclusive drops</em>
                   </h3>
                 </div>
-                <Link href="/#collections" className="link-draw eyebrow !tracking-[0.22em]">
+                <Link href="/drops" className="link-draw eyebrow !tracking-[0.22em]">
                   All drops <span className="arrow">→</span>
                 </Link>
               </div>

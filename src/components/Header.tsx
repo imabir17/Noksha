@@ -11,10 +11,10 @@ interface HeaderProps {
 }
 
 const NAV = [
-  { href: "/#collections", label: "Collections" },
+  { href: "/drops", label: "Drops" },
+  { href: "/#categories", label: "Categories" },
   { href: "/#shop", label: "The Pieces" },
   { href: "/about", label: "About" },
-  { href: "/#circle", label: "Founding Circle" },
 ];
 
 export default function Header({ bagCount, onOpenBag, transparentHero = true }: HeaderProps) {

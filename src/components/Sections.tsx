@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Reveal } from "./Reveal";
 import { LAUNCH_ROADMAP } from "@/data/nokshaData";
 
@@ -209,7 +210,8 @@ export function Footer() {
             <p className="eyebrow !text-[0.6rem] text-gold-soft">House</p>
             <ul className="mt-5 space-y-2 text-sm text-paper/70">
               <li><a className="nav-link" href="/about">Our Story</a></li>
-              <li><a className="nav-link" href="/#collections">Collections</a></li>
+              <li><Link className="nav-link" href="/drops">Exclusive Drops</Link></li>
+              <li><a className="nav-link" href="/#categories">Categories</a></li>
               <li><a className="nav-link" href="/#atelier">The Atelier</a></li>
               <li><a className="nav-link" href="/#circle">Founding Circle</a></li>
             </ul>

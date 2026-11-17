@@ -1,16 +1,15 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { Reveal } from "./Reveal";
 import { useStore } from "@/context/StoreContext";
+import { FOUNDING_PILLARS } from "@/data/nokshaData";
 import { CategoryFilter } from "./Shop";
-import { getDropStatusLabel } from "./CollectionDetailView";
 
 const NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
 export function Manifesto() {
-  const { siteContent, collections } = useStore();
+  const { siteContent, categories } = useStore();
   return (
     <section className="kantha-bg grain relative bg-paper px-5 py-16 sm:px-10 sm:py-24">
       <div className="mx-auto max-w-4xl text-center">
@@ -41,7 +40,7 @@ export function Manifesto() {
             <div className="kantha-rule mb-8" />
             <div className="grid grid-cols-3">
               {[
-                [String(collections.length), "Exclusive Drops"],
+                [String(categories.length || 3), "Craft categories"],
                 ["280", "Hours in one kantha"],
                 ["100%", "Made in Bangladesh"],
               ].map(([n, l]) => (
@@ -59,30 +58,47 @@ export function Manifesto() {
 }
 
 export function Collections({ onExplore }: { onExplore?: (id: CategoryFilter) => void }) {
-  const { collections } = useStore();
+  const { categories } = useStore();
+
+  // Merge rich visual defaults from FOUNDING_PILLARS with dynamic categories from DB
+  const displayCategories = categories.map((cat, idx) => {
+    const pillar = FOUNDING_PILLARS.find((p) => p.id === cat.id) ?? FOUNDING_PILLARS[idx % FOUNDING_PILLARS.length];
+    return {
+      id: cat.id,
+      shortName: cat.shortName || cat.name,
+      title: cat.name,
+      bengaliTitle: cat.bengaliName || pillar.bengaliTitle,
+      subtitle: cat.subtitle || pillar.subtitle,
+      description: pillar.description,
+      craftMetric: pillar.craftMetric,
+      priceRange: pillar.priceRange,
+      heroImage: pillar.heroImage,
+      accentHex: pillar.accentHex,
+    };
+  });
 
   return (
-    <section id="collections" className="kantha-bg bg-cream">
+    <section id="categories" className="kantha-bg bg-cream">
       <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-10 sm:pt-22">
         <Reveal className="flex flex-col items-start justify-between gap-6 border-b border-[var(--hairline)] pb-10 md:flex-row md:items-end">
           <div>
-            <p className="eyebrow text-gold">Exclusive Collections · Numbered Drops</p>
+            <p className="eyebrow text-gold">The Categories</p>
             <h2 className="font-display mt-5 text-5xl font-light leading-none sm:text-7xl">
-              Collector <em>drops.</em>
+              Three crafts, <em>one house.</em>
             </h2>
           </div>
-          <p className="max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
-            Every collection is released as an exclusive numbered Drop of one-of-one pieces. Once a drop piece is delivered, it is permanently archived under its collector&apos;s name.
+          <p className="max-w-sm text-[0.95rem] leading-relaxed text-ink-soft">
+            Explore our signature craft categories—available as multi-piece store editions or as one-of-one collector pieces in our numbered Drops.
           </p>
         </Reveal>
       </div>
 
       <div className="mx-auto max-w-[1440px] px-5 pb-14 sm:px-10 sm:pb-20">
-        {collections.map((pillar, i) => {
+        {displayCategories.map((cat, i) => {
           const flip = i % 2 === 1;
           return (
             <article
-              key={pillar.id}
+              key={cat.id}
               className="grid items-center gap-10 border-b border-[var(--hairline)] py-12 last:border-b-0 md:grid-cols-12 md:gap-16 md:py-16"
             >
               <Reveal
@@ -91,17 +107,17 @@ export function Collections({ onExplore }: { onExplore?: (id: CategoryFilter) =>
                   flip ? "md:order-2 md:col-start-7" : ""
                 }`}
               >
-                <Link href={`/collections/${pillar.id}`} className="block h-full w-full group">
+                <button
+                  type="button"
+                  onClick={() => onExplore && onExplore(cat.id as CategoryFilter)}
+                  className="block h-full w-full group text-left cursor-pointer"
+                >
                   <img
-                    src={pillar.heroImage}
-                    alt={pillar.title}
+                    src={cat.heroImage}
+                    alt={cat.title}
                     className="media-zoom h-full w-full object-cover"
                   />
-                  <span className="eyebrow absolute left-5 top-5 bg-espresso/90 px-3.5 py-2 !text-[0.58rem] text-gold-soft backdrop-blur-sm">
-                    <span className="font-num">{pillar.dropNumber || pillar.shortName}</span> ·{" "}
-                    {getDropStatusLabel(pillar.dropStatus)}
-                  </span>
-                </Link>
+                </button>
               </Reveal>
 
               <div
@@ -113,67 +129,62 @@ export function Collections({ onExplore }: { onExplore?: (id: CategoryFilter) =>
                   <div className="flex items-center gap-5">
                     <span
                       className="font-display text-xl font-light italic"
-                      style={{ color: pillar.accentHex }}
+                      style={{ color: cat.accentHex }}
                     >
                       {NUMERALS[i] ?? `${i + 1}`}.
                     </span>
                     <span className="h-px w-12 bg-[var(--hairline)]" />
-                    <span className="eyebrow !text-[0.6rem] text-gold">
-                      <span className="font-num">{pillar.dropNumber || pillar.shortName}</span> · One of One
+                    <span className="eyebrow !text-[0.6rem] text-mute">
+                      Category · {cat.shortName}
                     </span>
                   </div>
                 </Reveal>
                 <Reveal delay={80}>
-                  <Link href={`/collections/${pillar.id}`} className="block">
-                    <h3 className="font-display mt-6 text-4xl font-light leading-[1.06] sm:text-6xl hover:opacity-80 transition-opacity">
-                      {pillar.title}
+                  <button
+                    type="button"
+                    onClick={() => onExplore && onExplore(cat.id as CategoryFilter)}
+                    className="block text-left cursor-pointer"
+                  >
+                    <h3 className="font-display mt-6 text-5xl font-light leading-[1.06] sm:text-6xl hover:opacity-80 transition-opacity">
+                      {cat.title}
                     </h3>
-                  </Link>
+                  </button>
                   <p
                     className="font-bengali mt-4 text-2xl font-light"
-                    style={{ color: pillar.accentHex }}
+                    style={{ color: cat.accentHex }}
                   >
-                    {pillar.bengaliTitle}
+                    {cat.bengaliTitle}
                   </p>
                 </Reveal>
                 <Reveal delay={160}>
                   <p className="font-display mt-6 text-2xl font-light italic text-ink-soft">
-                    {pillar.subtitle}
+                    {cat.subtitle}
                   </p>
                   <p className="mt-5 max-w-md text-[0.95rem] leading-[1.8] text-ink-soft">
-                    {pillar.description}
+                    {cat.description}
                   </p>
                 </Reveal>
                 <Reveal delay={240}>
                   <dl className="mt-10 grid max-w-md grid-cols-2 gap-6 border-t border-[var(--hairline)] pt-6">
                     <div>
-                      <dt className="eyebrow !text-[0.6rem] text-mute">Drop Status</dt>
-                      <dd className="mt-2 text-sm font-medium text-ink">
-                        {getDropStatusLabel(pillar.dropStatus)}
-                      </dd>
+                      <dt className="eyebrow !text-[0.6rem] text-mute">Making time</dt>
+                      <dd className="mt-2 text-sm">{cat.craftMetric}</dd>
                     </div>
                     <div>
                       <dt className="eyebrow !text-[0.6rem] text-mute">From</dt>
                       <dd className="mt-2 text-sm tabular-nums">
-                        {pillar.priceRange.split("–")[0].trim()}
+                        {cat.priceRange.split("–")[0].trim()}
                       </dd>
                     </div>
                   </dl>
                   <div className="mt-10 flex flex-wrap items-center gap-8">
-                    <Link
-                      href={`/collections/${pillar.id}`}
-                      className="link-draw eyebrow !tracking-[0.24em]"
-                    >
-                      Enter <span className="font-num">{pillar.dropNumber || pillar.shortName}</span>{" "}
-                      <span className="arrow">→</span>
-                    </Link>
                     {onExplore && (
                       <button
                         type="button"
-                        onClick={() => onExplore("exclusive-drops")}
-                        className="eyebrow !text-[0.6rem] text-mute hover:text-ink cursor-pointer"
+                        onClick={() => onExplore(cat.id as CategoryFilter)}
+                        className="link-draw eyebrow !tracking-[0.24em] cursor-pointer"
                       >
-                        View all drop pieces below
+                        Explore {cat.title} <span className="arrow">→</span>
                       </button>
                     )}
                   </div>

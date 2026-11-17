@@ -424,6 +424,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           transparentHero={
             pathname === "/" ||
             pathname === "/about" ||
+            pathname === "/drops" ||
             Boolean(pathname?.startsWith("/collections/"))
           }
         />
