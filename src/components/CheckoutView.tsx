@@ -525,7 +525,7 @@ function Confirmation({ order }: { order: PlacedOrder }) {
                 Save Order Details as PDF
               </button>
               <Link
-                href={`/track-order?phone=${encodeURIComponent(order.phone)}`}
+                href={`/track-order?order=${encodeURIComponent(order.id)}`}
                 className="press inline-flex items-center gap-2 border border-[var(--hairline)] px-6 py-4 eyebrow !tracking-[0.22em] text-ink-soft hover:border-ink hover:text-ink transition-colors"
               >
                 <Search className="h-3.5 w-3.5" strokeWidth={1.5} />
