@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { convertMatchingWaitlistLeads, getDb } from "@/lib/db";
 import { getUddoktaPayConfig } from "../create/route";
 
 export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: string) {
@@ -22,8 +22,10 @@ export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: st
     const db = getDb();
     const now = new Date().toISOString();
     const existing = db
-      .prepare("SELECT status, items_json, timeline_json FROM orders WHERE id = ?")
-      .get(orderId) as { status: string; items_json: string; timeline_json: string } | undefined;
+      .prepare("SELECT status, customer_name, customer_phone, items_json, timeline_json FROM orders WHERE id = ?")
+      .get(orderId) as
+      | { status: string; customer_name: string; customer_phone: string; items_json: string; timeline_json: string }
+      | undefined;
 
     if (existing) {
       let timeline: { status: string; at: string; by: string; note: string }[] = [];
@@ -55,17 +57,24 @@ export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: st
       ).run(trxId, JSON.stringify(timeline), now, orderId);
 
       // Whoever confirms online payment first acquires the 1-of-1 Drop piece
+      // and automatically converts any matching waitlist lead with the same phone number
       try {
         const items = JSON.parse(existing.items_json) as { productId?: string }[];
-        for (const item of items) {
-          if (item.productId) {
-            db.prepare(
-              `UPDATE products
-               SET status = 'sold', status_label = 'Acquired', stock_qty = 0, updated_at = ?
-               WHERE id = ? AND collection_id != '' AND status != 'sold'`
-            ).run(now, item.productId);
-          }
+        const productIds = items.map((i) => i.productId).filter((id): id is string => Boolean(id));
+        for (const pid of productIds) {
+          db.prepare(
+            `UPDATE products
+             SET status = 'sold', status_label = 'Acquired', stock_qty = 0, updated_at = ?
+             WHERE id = ? AND collection_id != '' AND status != 'sold'`
+          ).run(now, pid);
         }
+        convertMatchingWaitlistLeads(
+          db,
+          existing.customer_phone,
+          existing.customer_name,
+          orderId,
+          productIds
+        );
       } catch {
         // ignore
       }

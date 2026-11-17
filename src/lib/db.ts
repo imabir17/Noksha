@@ -1232,3 +1232,41 @@ export function getCollectionById(id: string): DbCollection | null {
   return row ? mapCollectionRow(row) : null;
 }
 
+function normalizeBdDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("880") && digits.length >= 13) return digits.slice(2);
+  if (digits.startsWith("88") && digits.length >= 12) return digits.slice(2);
+  return digits;
+}
+
+/**
+ * Automatically converts matching waitlist leads when a customer completes a purchase
+ * using the same phone number they used to join the waitlist.
+ */
+export function convertMatchingWaitlistLeads(
+  db: Database.Database,
+  customerPhone: string,
+  customerName: string,
+  orderId: string,
+  productIds: string[]
+) {
+  const targetDigits = normalizeBdDigits(customerPhone || "");
+  if (targetDigits.length < 8 || productIds.length === 0) return;
+
+  const waitlistLeads = db
+    .prepare("SELECT id, phone, product_id FROM leads WHERE type = 'waitlist' AND status != 'converted'")
+    .all() as { id: number; phone: string; product_id: string }[];
+
+  for (const lead of waitlistLeads) {
+    if (!lead.product_id || !productIds.includes(lead.product_id)) continue;
+    const leadDigits = normalizeBdDigits(lead.phone || "");
+    if (!leadDigits) continue;
+    if (leadDigits === targetDigits || leadDigits.endsWith(targetDigits) || targetDigits.endsWith(leadDigits)) {
+      db.prepare("UPDATE leads SET status = 'converted', notes = ? WHERE id = ?").run(
+        `Purchased automatically with waitlist phone (Order ${orderId}${customerName ? ` · ${customerName}` : ""})`,
+        lead.id
+      );
+    }
+  }
+}
+

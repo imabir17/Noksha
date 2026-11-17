@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getAllCategories, getAllCollections, getAllProducts, getAllPromoCodes, getDb, getSiteContentMap } from "@/lib/db";
+import { convertMatchingWaitlistLeads, getAllCategories, getAllCollections, getAllProducts, getAllPromoCodes, getDb, getSiteContentMap } from "@/lib/db";
 
 export async function GET() {
   try {
@@ -199,6 +199,16 @@ export async function POST(req: NextRequest) {
           db.prepare(
             "UPDATE abandoned_checkouts SET recovered = 1, last_step = 'completed', updated_at = ? WHERE session_id = ?"
           ).run(now, String(body.sessionId));
+        }
+
+        if (String(order.payment || "") !== "uddoktapay") {
+          convertMatchingWaitlistLeads(
+            db,
+            String(order.phone || ""),
+            String(order.name || ""),
+            String(order.id),
+            normalizedItems.map((i: { productId: string }) => i.productId).filter(Boolean)
+          );
         }
       });
 
