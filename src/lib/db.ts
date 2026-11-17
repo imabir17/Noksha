@@ -1,11 +1,32 @@
 import Database from "better-sqlite3";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { DropStatus, NOKSHA_PRODUCTS, NokshaProduct, PillarId, ProductStatus } from "@/data/nokshaData";
 import { hashPassword, SessionUser, StaffRole } from "./auth";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "noksha.db");
+function resolveDataDir(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join(os.tmpdir(), "noksha-data");
+  }
+  return path.join(process.cwd(), "data");
+}
+
+function openSqliteDb(): Database.Database {
+  const primaryDir = resolveDataDir();
+  try {
+    if (!fs.existsSync(primaryDir)) {
+      fs.mkdirSync(primaryDir, { recursive: true });
+    }
+    return new Database(path.join(primaryDir, "noksha.db"));
+  } catch {
+    const fallbackDir = path.join(os.tmpdir(), "noksha-data");
+    if (!fs.existsSync(fallbackDir)) {
+      fs.mkdirSync(fallbackDir, { recursive: true });
+    }
+    return new Database(path.join(fallbackDir, "noksha.db"));
+  }
+}
 
 declare global {
   // eslint-disable-next-line no-var
@@ -25,10 +46,7 @@ export function getDb(): Database.Database {
     }
     return global.__nokshaDb;
   }
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  const db = new Database(DB_PATH);
+  const db = openSqliteDb();
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   initSchema(db);
