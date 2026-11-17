@@ -617,6 +617,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // 3a-waitlist. Mark Waitlist Piece Sold to a Waitlist Customer
+    if (action === "mark_waitlist_sold") {
+      const { leadId, productId, customerName } = body;
+      if (!leadId || !productId) {
+        return NextResponse.json({ error: "Lead ID and Product ID are required" }, { status: 400 });
+      }
+      db.prepare(
+        `UPDATE products
+         SET status = 'sold', status_label = 'Acquired', stock_qty = 0, acquired_by = ?, updated_at = ?
+         WHERE id = ?`
+      ).run(String(customerName || ""), now, String(productId));
+      db.prepare("UPDATE leads SET status = 'converted', notes = ? WHERE id = ?").run(
+        `Sold to waitlist customer ${customerName || ""}`,
+        Number(leadId)
+      );
+      logAudit(user, "mark_waitlist_sold", "product", String(productId), `Marked sold to waitlist lead #${leadId} (${customerName})`);
+      revalidatePath("/");
+      revalidatePath("/shop");
+      revalidatePath("/drops");
+      revalidatePath(`/pieces/${productId}`);
+      return NextResponse.json({ ok: true });
+    }
+
     // Everything below requires owner or manager
     if (user.role === "support") {
       return NextResponse.json({ error: "Support role cannot modify catalog or settings" }, { status: 403 });

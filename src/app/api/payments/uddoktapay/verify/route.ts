@@ -22,8 +22,8 @@ export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: st
     const db = getDb();
     const now = new Date().toISOString();
     const existing = db
-      .prepare("SELECT status, timeline_json FROM orders WHERE id = ?")
-      .get(orderId) as { status: string; timeline_json: string } | undefined;
+      .prepare("SELECT status, items_json, timeline_json FROM orders WHERE id = ?")
+      .get(orderId) as { status: string; items_json: string; timeline_json: string } | undefined;
 
     if (existing) {
       let timeline: { status: string; at: string; by: string; note: string }[] = [];
@@ -53,6 +53,22 @@ export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: st
              updated_at = ?
          WHERE id = ?`
       ).run(trxId, JSON.stringify(timeline), now, orderId);
+
+      // Whoever confirms online payment first acquires the 1-of-1 Drop piece
+      try {
+        const items = JSON.parse(existing.items_json) as { productId?: string }[];
+        for (const item of items) {
+          if (item.productId) {
+            db.prepare(
+              `UPDATE products
+               SET status = 'sold', status_label = 'Acquired', stock_qty = 0, updated_at = ?
+               WHERE id = ? AND collection_id != '' AND status != 'sold'`
+            ).run(now, item.productId);
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
   }
 

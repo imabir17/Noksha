@@ -3356,16 +3356,41 @@ export default function AdminCommandCentre() {
                         <td className="py-3.5 px-4 font-num text-[#1E1915] font-medium">
                           {new Date(l.created_at).toLocaleDateString("en-GB")}
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
+                          {l.type === "waitlist" && l.product_id && l.status !== "converted" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Mark "${l.product_name}" as Sold / Acquired to waitlist customer ${l.name}?`
+                                  )
+                                ) {
+                                  postAction(
+                                    {
+                                      action: "mark_waitlist_sold",
+                                      leadId: l.id,
+                                      productId: l.product_id,
+                                      customerName: l.name,
+                                    },
+                                    `Marked "${l.product_name}" sold to ${l.name}`
+                                  );
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#2A1F18] hover:bg-[#4B3527] text-white font-bold text-[12px] cursor-pointer"
+                            >
+                              Mark Sold to Buyer
+                            </button>
+                          )}
                           {l.phone && (
                             <a
                               href={toBdWhatsApp(
                                 l.phone,
-                                `আসসালামু আলাইকুম ${l.name}, thank you for reserving "${l.product_name}" with Noksha!`
+                                `আসসালামু আলাইকুম ${l.name}, regarding "${l.product_name}" from Noksha!`
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1B5E55] hover:bg-[#144740] text-white font-bold"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1B5E55] hover:bg-[#144740] text-white font-bold text-[12px]"
                             >
                               <MessageCircle className="w-3.5 h-3.5" />
                               WhatsApp

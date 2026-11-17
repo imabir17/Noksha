@@ -59,6 +59,18 @@ export default function CheckoutView() {
   const [submitting, setSubmitting] = useState(false);
   const [gatewayNotice, setGatewayNotice] = useState<string | null>(null);
 
+  const hasDropItem = bag.some((i) => Boolean(i.product.collectionId && i.product.collectionId.trim() !== ""));
+  const availablePayments = hasDropItem
+    ? PAYMENTS.filter((p) => p.id === "uddoktapay")
+    : PAYMENTS;
+
+  // Enforce online payment only when bag contains any Exclusive Drop (1-of-1) piece
+  useEffect(() => {
+    if (hasDropItem && payment !== "uddoktapay") {
+      setPayment("uddoktapay");
+    }
+  }, [hasDropItem, payment]);
+
   // Handle UddoktaPay redirect callback (?uddoktapay=success&invoice_id=...&order_id=...)
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
@@ -352,8 +364,13 @@ export default function CheckoutView() {
               </div>
 
               <Step n="03" title="Payment" className="mt-14" />
+              {hasDropItem && (
+                <p className="mb-4 border border-gold/40 bg-cream/70 px-4 py-3 text-xs leading-relaxed text-ink">
+                  Your bag contains an <strong>Exclusive Drop (1-of-1)</strong> piece. Cash on delivery is not available—only online payment is accepted, and whoever confirms payment first acquires the piece.
+                </p>
+              )}
               <div className="divide-y divide-[var(--hairline)] border-y border-[var(--hairline)]">
-                {PAYMENTS.map((p) => (
+                {availablePayments.map((p) => (
                   <label key={p.id} className="flex cursor-pointer items-start gap-4 py-5">
                     <input
                       type="radio"
@@ -450,7 +467,7 @@ export default function CheckoutView() {
                     : "Place order"}
                 </button>
                 <p className="mt-4 text-center text-xs leading-relaxed text-mute">
-                  Wrapped in kora muslin at no charge. We will contact you to confirm before dispatch.
+                  Wrapped in kora muslin at no charge. Refundable only if opened in front of the delivery person and found damaged, or if the delivered item does not match what was promised.
                 </p>
               </div>
             </aside>

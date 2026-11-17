@@ -101,6 +101,27 @@ export async function POST(req: NextRequest) {
       }));
 
       const tx = db.transaction(() => {
+        // Validate availability & Drop payment rules before recording order
+        for (const item of normalizedItems) {
+          if (!item.productId) continue;
+          const row = db
+            .prepare("SELECT name, collection_id, status, stock_qty FROM products WHERE id = ?")
+            .get(item.productId) as
+            | { name: string; collection_id: string; status: string; stock_qty: number }
+            | undefined;
+          if (!row) continue;
+
+          const isCollectionPiece = Boolean(row.collection_id && row.collection_id.trim() !== "");
+          if (isCollectionPiece) {
+            if (row.status === "sold") {
+              throw new Error(`"${row.name}" has already been acquired by another collector.`);
+            }
+            if (String(order.payment || "") !== "uddoktapay") {
+              throw new Error(`Exclusive Drop piece "${row.name}" requires online payment (no Cash on Delivery).`);
+            }
+          }
+        }
+
         db.prepare(
           `INSERT INTO orders (
             id, customer_name, customer_phone, customer_email, district, address, notes,
@@ -131,7 +152,8 @@ export async function POST(req: NextRequest) {
           now
         );
 
-        // Update product inventory & automatically mark 1-of-1 Collection items as Acquired or depleted store items as Sold Out
+        // Update product inventory for regular store pieces immediately.
+        // For 1-of-1 Drop pieces paid via UddoktaPay, ownership is locked when payment is verified (first-to-pay wins).
         for (const item of normalizedItems) {
           if (!item.productId) continue;
           const row = db
@@ -140,14 +162,19 @@ export async function POST(req: NextRequest) {
           if (!row) continue;
 
           const isCollectionPiece = Boolean(row.collection_id && row.collection_id.trim() !== "");
-          const newStock = isCollectionPiece ? 0 : Math.max(0, row.stock_qty - item.quantity);
-          let nextStatus = "ready";
-          let nextLabel = isCollectionPiece ? "One of One" : "In Stock";
-
           if (isCollectionPiece) {
-            nextStatus = "sold";
-            nextLabel = "Acquired";
-          } else if (newStock === 0) {
+            db.prepare("UPDATE products SET orders_count = orders_count + 1, updated_at = ? WHERE id = ?").run(
+              now,
+              item.productId
+            );
+            continue;
+          }
+
+          const newStock = Math.max(0, row.stock_qty - item.quantity);
+          let nextStatus = "ready";
+          let nextLabel = "In Stock";
+
+          if (newStock === 0) {
             nextStatus = "sold";
             nextLabel = "Sold Out";
           } else if (newStock <= row.low_stock_threshold) {

@@ -209,10 +209,10 @@ export default function ProductDetailView({ product, related }: ProductDetailVie
                 ) : isUpcoming ? (
                   isReserved ? (
                     <div className="swap-fade border border-[var(--hairline)] bg-cream/60 p-6">
-                      <p className="eyebrow text-river">Drop Notification Registered</p>
+                      <p className="eyebrow text-river">Added to Drop Waitlist</p>
                       <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-                        We have recorded your interest for{" "}
-                        <span className="font-num">{liveProduct.dropNumber}</span>. Our concierge will notify you as soon as pre-booking opens.
+                        You are on the waitlist for{" "}
+                        <span className="font-num">{liveProduct.dropNumber}</span>. Joining the waitlist does not confirm purchase—we will notify you before launch and when the drop goes live. Whoever confirms online payment first acquires the piece.
                       </p>
                     </div>
                   ) : (
@@ -226,11 +226,11 @@ export default function ProductDetailView({ product, related }: ProductDetailVie
                       className="border border-[var(--hairline)] bg-cream/50 p-6"
                     >
                       <p className="eyebrow text-gold">
-                        Upcoming Release · <span className="font-num">{liveProduct.dropNumber}</span>
+                        Preview Stage · <span className="font-num">{liveProduct.dropNumber}</span>
                       </p>
                       <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-                        This one-of-one piece belongs to{" "}
-                        <strong>{liveProduct.collectionName || liveProduct.dropNumber}</strong>, which is currently in preview. Leave your details to receive private early access when pre-booking opens.
+                        This 1-of-1 piece from{" "}
+                        <strong>{liveProduct.collectionName || liveProduct.dropNumber}</strong> is currently in preview. Join the waitlist with your name and phone number—we will contact you before launch and when the drop goes live. Joining does not guarantee purchase; whoever confirms online payment first gets the piece (no Cash on Delivery).
                       </p>
                       <input
                         className="field mt-4"
@@ -250,7 +250,7 @@ export default function ProductDetailView({ product, related }: ProductDetailVie
                         aria-label="Phone"
                       />
                       <button type="submit" className="press btn-solid mt-6 w-full cursor-pointer">
-                        Notify Me When Drop Opens
+                        Join Waitlist
                       </button>
                     </form>
                   )
@@ -343,9 +343,9 @@ export default function ProductDetailView({ product, related }: ProductDetailVie
                       </button>
                     </div>
                     {isCollectionPiece ? (
-                      <p className="mt-3 text-xs text-mute">
+                      <p className="mt-3 text-xs leading-relaxed text-mute">
                         Exclusive 1-of-1 piece from{" "}
-                        <span className="font-num">{liveProduct.dropNumber}</span> — created once, never repeated. Upon delivery, your name is recorded in our archive.
+                        <span className="font-num">{liveProduct.dropNumber}</span> — online payment only (no Cash on Delivery). Whoever confirms payment first acquires the piece. Refundable only if opened in front of the delivery person and found damaged, or if the delivered item does not match what was promised.
                       </p>
                     ) : (
                       <p className="mt-3 text-xs text-mute">
@@ -393,6 +393,10 @@ export default function ProductDetailView({ product, related }: ProductDetailVie
                     </React.Fragment>,
                   ],
                   ["Care", liveProduct.care],
+                  [
+                    "Refund Policy",
+                    "Refundable only if opened in front of the delivery person and found damaged, or if the product delivered does not match what was promised. Otherwise non-refundable.",
+                  ],
                 ].map(([k, v]) => (
                   <div key={String(k)} className="grid grid-cols-[7.5rem_1fr] gap-4 py-5">
                     <dt className="eyebrow !text-[0.6rem] pt-1 text-mute">{k}</dt>

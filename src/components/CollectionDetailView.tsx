@@ -159,6 +159,16 @@ export default function CollectionDetailView({
                 <dt className="eyebrow !text-[0.6rem] text-mute">Pieces in drop</dt>
                 <dd className="text-sm font-num text-right">{collectionProducts.length}</dd>
               </div>
+              <div className="py-4 flex justify-between gap-4">
+                <dt className="eyebrow !text-[0.6rem] text-mute">Payment</dt>
+                <dd className="text-sm text-right">Online Payment Only (No COD)</dd>
+              </div>
+              <div className="py-4 flex justify-between gap-4">
+                <dt className="eyebrow !text-[0.6rem] text-mute">Refund Policy</dt>
+                <dd className="text-xs text-right text-ink-soft max-w-[16rem]">
+                  Refundable only if opened in front of delivery man &amp; found damaged, or not rightfully delivered.
+                </dd>
+              </div>
             </dl>
           </div>
 
@@ -250,7 +260,7 @@ export default function CollectionDetailView({
                           href={`/pieces/${p.id}`}
                           className="quick-add eyebrow absolute inset-x-0 bottom-0 hidden bg-ink/90 py-4 text-center text-paper backdrop-blur-sm hover:bg-ink md:block"
                         >
-                          Upcoming Drop · View Piece
+                          Preview · Join Waitlist
                         </Link>
                       ) : isPrebook ? (
                         <Link
