@@ -35,7 +35,7 @@ export default function ProductDetailView({ product, related }: ProductDetailVie
     liveProduct.status === "waitlist";
   const isReserved = reserved.includes(liveProduct.id);
 
-  const whatsapp = `https://wa.me/8801700665742?text=${encodeURIComponent(
+  const whatsapp = `https://wa.me/8801973673217?text=${encodeURIComponent(
     `Hello Noksha, I would like to enquire about “${liveProduct.name}” (${liveProduct.colors[finish]?.name}).`
   )}`;
 

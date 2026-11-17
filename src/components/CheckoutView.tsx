@@ -22,7 +22,7 @@ const PAYMENTS: { id: PaymentMethod; title: string; note: string }[] = [
 ];
 
 const MERCHANT_NUMBER = "01700-665742";
-const CARE_NUMBER = "8801700665742";
+const CARE_NUMBER = "8801973673217";
 
 type Errors = Partial<Record<"name" | "phone" | "email" | "address" | "trxId", string>>;
 

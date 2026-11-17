@@ -35,7 +35,7 @@ declare global {
   var __nokshaDbVer: number | undefined;
 }
 
-const DB_SCHEMA_VERSION = 6;
+const DB_SCHEMA_VERSION = 7;
 
 export function getDb(): Database.Database {
   if (global.__nokshaDb) {
@@ -540,7 +540,7 @@ function seedIfNeeded(db: Database.Database) {
       manifesto_eyebrow: "নকশা — meaning “design, pattern”",
       manifesto_body:
         "We began with three objects every Bengali home has always held dear — a lamp for the evening, a kantha for rest, and a carved box for what we cannot bear to lose. Each is made slowly, by hand, by Bangladeshi Artisans.",
-      whatsapp_number: "8801700665742",
+      whatsapp_number: "8801973673217",
       merchant_number: "01700-665742",
       support_email: "atelier@noksha.bd",
       free_delivery_threshold: "8000",
@@ -551,6 +551,10 @@ function seedIfNeeded(db: Database.Database) {
     for (const [k, v] of Object.entries(defaults)) {
       insertContent.run(k, v, now);
     }
+  } else {
+    db.prepare(
+      "UPDATE site_content SET value = '8801973673217', updated_at = ? WHERE key = 'whatsapp_number' AND value = '8801700665742'"
+    ).run(now);
   }
 
   // 5. Seed realistic orders, leads, abandoned carts & analytics if empty
