@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       | undefined;
 
     if (!row || !row.active || !verifyPassword(cleanPass, row.password_hash)) {
+      logAudit({ email: cleanEmail || "unknown", role: "unauthorized" }, "failed_login", "staff_user", cleanEmail || "unknown", "Failed sign-in attempt");
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
@@ -65,6 +66,10 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   const token = await getSessionTokenFromCookies();
   if (token) {
+    const user = getSessionUser(token);
+    if (user) {
+      logAudit(user, "staff_logout", "staff_user", String(user.id), `${user.name} signed out`);
+    }
     const db = getDb();
     db.prepare("DELETE FROM sessions WHERE token = ?").run(token);
   }

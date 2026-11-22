@@ -390,7 +390,7 @@ export async function GET() {
         : [];
 
     const auditLogs = db
-      .prepare("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100")
+      .prepare("SELECT * FROM audit_logs ORDER BY id DESC")
       .all() as {
       id: number;
       user_email: string;
