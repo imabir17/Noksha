@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { convertMatchingWaitlistLeads, getAllCategories, getAllCollections, getAllProducts, getAllPromoCodes, getDb, getSiteContentMap } from "@/lib/db";
+import { convertMatchingWaitlistLeads, getAllCategories, getAllCollections, getAllProducts, getAllPromoCodes, getDb, getSiteContentMap, syncDbToSupabase } from "@/lib/db";
 
 export async function GET() {
   try {
@@ -213,6 +213,7 @@ export async function POST(req: NextRequest) {
       });
 
       tx();
+      await syncDbToSupabase();
       revalidatePath("/");
       revalidatePath("/checkout");
       return NextResponse.json({ ok: true });
@@ -230,6 +231,7 @@ export async function POST(req: NextRequest) {
         String(body.productName || ""),
         now
       );
+      await syncDbToSupabase();
       return NextResponse.json({ ok: true });
     }
 
@@ -244,6 +246,7 @@ export async function POST(req: NextRequest) {
         `Founding Circle No. ${body.memberNo || "100"}`,
         now
       );
+      await syncDbToSupabase();
       return NextResponse.json({ ok: true });
     }
 
@@ -252,6 +255,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO leads (type, name, phone, email, product_id, product_name, courtesy_code, status, notes, created_at)
          VALUES ('newsletter', '', '', ?, '', 'Letters from the looms', '', 'new', 'Footer newsletter signup', ?)`
       ).run(String(body.email || ""), now);
+      await syncDbToSupabase();
       return NextResponse.json({ ok: true });
     }
 

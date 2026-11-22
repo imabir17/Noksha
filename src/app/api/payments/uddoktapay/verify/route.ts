@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convertMatchingWaitlistLeads, getDb } from "@/lib/db";
+import { convertMatchingWaitlistLeads, getDb, syncDbToSupabase } from "@/lib/db";
 import { getUddoktaPayConfig } from "../create/route";
 
 export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: string) {
@@ -78,6 +78,7 @@ export async function verifyAndMarkOrder(invoiceId: string, fallbackOrderId?: st
       } catch {
         // ignore
       }
+      await syncDbToSupabase();
     }
   }
 

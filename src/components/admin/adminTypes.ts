@@ -128,6 +128,7 @@ export interface AdminAnalytics {
 
 export interface AdminPayload {
   user: SessionUser;
+  supabaseEnabled?: boolean;
   categories: DbCategory[];
   collections: DbCollection[];
   products: DbProduct[];

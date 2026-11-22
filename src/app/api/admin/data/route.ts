@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getSessionTokenFromCookies, hashPassword } from "@/lib/auth";
 import {
+  clearDemoData,
   getAllCategories,
   getAllCollections,
   getAllProducts,
@@ -11,6 +12,7 @@ import {
   getSiteContentMap,
   logAudit,
 } from "@/lib/db";
+import { getSupabaseConfig } from "@/lib/supabase";
 
 export async function GET() {
   try {
@@ -404,6 +406,7 @@ export async function GET() {
 
     return NextResponse.json({
       user,
+      supabaseEnabled: getSupabaseConfig().enabled,
       categories,
       collections,
       products,
@@ -959,6 +962,28 @@ export async function POST(req: NextRequest) {
         revalidatePath("/drops");
         revalidatePath("/shop");
       }
+      return NextResponse.json({ ok: true });
+    }
+
+    // 8b. Clear Demo Data (Owner only)
+    if (action === "clear_demo_data") {
+      if (user.role !== "owner") {
+        return NextResponse.json({ error: "Only Owner can clear demo data" }, { status: 403 });
+      }
+      const includeCatalog = Boolean(body.includeCatalog);
+      clearDemoData(includeCatalog);
+      logAudit(
+        user,
+        "clear_demo_data",
+        "database",
+        "all",
+        includeCatalog
+          ? "Cleared all demo orders, leads, analytics, and sample catalog"
+          : "Cleared all demo orders, leads, abandoned carts, and analytics counters (reset to 0)"
+      );
+      revalidatePath("/");
+      revalidatePath("/shop");
+      revalidatePath("/drops");
       return NextResponse.json({ ok: true });
     }
 

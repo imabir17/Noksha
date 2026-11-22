@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Database from "better-sqlite3";
-import { getDb } from "@/lib/db";
+import { getDb, syncDbToSupabase } from "@/lib/db";
 
 function ensureCancellationCols(db: Database.Database) {
   const cols = db.prepare("PRAGMA table_info(orders)").all() as { name: string }[];
@@ -218,6 +218,7 @@ export async function POST(req: NextRequest) {
        WHERE id = ?`
     ).run(reason, nextInternalNotes, JSON.stringify(timeline), now, order.id);
 
+    await syncDbToSupabase();
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("POST /api/orders/track error:", err);

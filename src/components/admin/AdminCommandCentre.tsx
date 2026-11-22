@@ -713,12 +713,38 @@ export default function AdminCommandCentre() {
             <h1 className="text-[15px] font-semibold tracking-[-0.01em] text-[#181512] truncate">
               {navItems.find((n) => n.id === activeTab)?.label}
             </h1>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white border border-black/[0.07] text-[11px] text-[#635A52]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1B7A5C]" />
-              Live sync
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-black/[0.07] text-[11px] text-[#635A52]">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  data.supabaseEnabled ? "bg-[#10B981]" : "bg-[#B08A4F]"
+                }`}
+              />
+              {data.supabaseEnabled ? "Supabase Cloud Sync" : "Local SQLite"}
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {data.user.role === "owner" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    confirm(
+                      "Reset all demo Orders, Customers, Leads, Abandoned Carts, and Analytics counters to 0 so only real visitor and customer data appears?"
+                    )
+                  ) {
+                    postAction(
+                      { action: "clear_demo_data", includeCatalog: false },
+                      "Demo orders, leads & analytics cleared to 0!"
+                    );
+                  }
+                }}
+                className="admin-press px-3 py-1.5 rounded-lg bg-white hover:bg-[#FEF2F2] text-[#635A52] hover:text-[#9B2C2C] border border-black/[0.09] text-[12px] font-medium hidden md:flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Clear demo orders, leads, abandoned carts & analytics to 0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Reset Demo Data
+              </button>
+            )}
             <button
               type="button"
               onClick={copyDailyDigest}

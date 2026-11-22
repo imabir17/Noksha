@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import { DropStatus, NOKSHA_PRODUCTS, NokshaProduct, PillarId, ProductStatus } from "@/data/nokshaData";
 import { hashPassword, SessionUser, StaffRole } from "./auth";
+import { downloadDbFromSupabaseSync, getSupabaseConfig, uploadDbBufferToSupabase } from "./supabase";
 
 function resolveDataDir(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
@@ -18,13 +19,21 @@ function openSqliteDb(): Database.Database {
     if (!fs.existsSync(primaryDir)) {
       fs.mkdirSync(primaryDir, { recursive: true });
     }
-    return new Database(path.join(primaryDir, "noksha.db"));
+    const dbFile = path.join(primaryDir, "noksha.db");
+    if (!fs.existsSync(dbFile)) {
+      downloadDbFromSupabaseSync(dbFile);
+    }
+    return new Database(dbFile);
   } catch {
     const fallbackDir = path.join(os.tmpdir(), "noksha-data");
     if (!fs.existsSync(fallbackDir)) {
       fs.mkdirSync(fallbackDir, { recursive: true });
     }
-    return new Database(path.join(fallbackDir, "noksha.db"));
+    const fallbackFile = path.join(fallbackDir, "noksha.db");
+    if (!fs.existsSync(fallbackFile)) {
+      downloadDbFromSupabaseSync(fallbackFile);
+    }
+    return new Database(fallbackFile);
   }
 }
 
@@ -559,9 +568,15 @@ function seedIfNeeded(db: Database.Database) {
     ).run(now);
   }
 
-  // 5. Seed realistic orders, leads, abandoned carts & analytics if empty
+  // 5. Seed realistic orders, leads, abandoned carts & analytics if empty (skip if demo data was cleared)
+  const demoClearedRow = db
+    .prepare("SELECT value FROM site_content WHERE key = 'demo_cleared'")
+    .get() as { value: string } | undefined;
+  const skipDemoSeed =
+    demoClearedRow?.value === "true" || process.env.NOKSHA_SKIP_DEMO_SEED === "true";
+
   const orderCount = (db.prepare("SELECT COUNT(*) as c FROM orders").get() as { c: number }).c;
-  if (orderCount === 0) {
+  if (!skipDemoSeed && orderCount === 0) {
     const d1 = new Date(Date.now() - 4 * 86400000).toISOString();
     const d2 = new Date(Date.now() - 2 * 86400000).toISOString();
     const d3 = new Date(Date.now() - 18 * 3600000).toISOString();
@@ -1081,6 +1096,50 @@ export function getSessionUser(token: string | null): SessionUser | null {
   return { id: row.id, name: row.name, email: row.email, role: row.role };
 }
 
+export async function syncDbToSupabase(): Promise<boolean> {
+  if (!getSupabaseConfig().enabled) return false;
+  try {
+    const db = getDb();
+    try {
+      db.pragma("wal_checkpoint(TRUNCATE)");
+    } catch {
+      // ignore
+    }
+    const serialized = db.serialize();
+    return await uploadDbBufferToSupabase(Buffer.from(serialized));
+  } catch (err) {
+    console.error("syncDbToSupabase failed:", err);
+    return false;
+  }
+}
+
+export function clearDemoData(includeCatalog = false) {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM orders").run();
+    db.prepare("DELETE FROM customer_notes").run();
+    db.prepare("DELETE FROM leads").run();
+    db.prepare("DELETE FROM abandoned_checkouts").run();
+    db.prepare("DELETE FROM analytics_events").run();
+    db.prepare(
+      "UPDATE products SET views_count = 0, add_to_bag_count = 0, orders_count = 0, acquired_by = '', updated_at = ?"
+    ).run(now);
+    db.prepare(
+      "UPDATE products SET status = 'ready', status_label = 'One of One', stock_qty = 1 WHERE collection_id != '' AND status = 'sold'"
+    ).run();
+    if (includeCatalog) {
+      db.prepare("DELETE FROM products").run();
+      db.prepare("DELETE FROM collections").run();
+    }
+    db.prepare(
+      `INSERT INTO site_content (key, value, updated_at) VALUES ('demo_cleared', 'true', ?)
+       ON CONFLICT(key) DO UPDATE SET value = 'true', updated_at = excluded.updated_at`
+    ).run(now);
+  });
+  tx();
+}
+
 export function logAudit(
   user: { email: string; role: string },
   action: string,
@@ -1093,6 +1152,7 @@ export function logAudit(
     `INSERT INTO audit_logs (user_email, user_role, action, entity_type, entity_id, details, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(user.email, user.role, action, entityType, entityId, details, new Date().toISOString());
+  void syncDbToSupabase();
 }
 
 export interface DbCategory {
