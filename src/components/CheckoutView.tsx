@@ -6,7 +6,8 @@ import { ArrowLeft, Download, Search } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import PromoField from "@/components/PromoField";
 import { Footer } from "@/components/Sections";
-import { BANGLADESH_DISTRICTS, formatBDT } from "@/data/nokshaData";
+import { formatBDT } from "@/data/nokshaData";
+import { BD_DIVISIONS } from "@/data/bdLocations";
 import {
   FREE_DELIVERY_THRESHOLD,
   PaymentMethod,
@@ -48,11 +49,44 @@ export default function CheckoutView() {
     name: "",
     phone: "",
     email: "",
+    division: "Dhaka",
     district: "Dhaka",
+    upazila: "Dhanmondi",
     address: "",
     notes: "",
     trxId: "",
   });
+
+  const currentDivision =
+    BD_DIVISIONS.find((d) => d.name === form.division) ?? BD_DIVISIONS[0];
+  const currentDistrict =
+    currentDivision.districts.find((d) => d.name === form.district) ??
+    currentDivision.districts[0];
+
+  const handleDivisionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextDivName = e.target.value;
+    const divObj = BD_DIVISIONS.find((d) => d.name === nextDivName) ?? BD_DIVISIONS[0];
+    const firstDist = divObj.districts[0];
+    const firstUpazila = firstDist?.upazilas[0] ?? "";
+    setForm((f) => ({
+      ...f,
+      division: divObj.name,
+      district: firstDist?.name ?? "",
+      upazila: firstUpazila,
+    }));
+  };
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextDistName = e.target.value;
+    const distObj =
+      currentDivision.districts.find((d) => d.name === nextDistName) ??
+      currentDivision.districts[0];
+    setForm((f) => ({
+      ...f,
+      district: distObj.name,
+      upazila: distObj.upazilas[0] ?? "",
+    }));
+  };
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [errors, setErrors] = useState<Errors>({});
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
@@ -194,6 +228,7 @@ export default function CheckoutView() {
       document.querySelector<HTMLElement>("[data-error='true']")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    const fullAddress = `${form.address.trim()}, ${form.upazila} (${form.division} Division)`;
     const order: PlacedOrder = {
       id: `NK-${Date.now().toString(36).toUpperCase().slice(-5)}${Math.floor(10 + Math.random() * 89)}`,
       placedAt: new Date().toISOString(),
@@ -201,7 +236,7 @@ export default function CheckoutView() {
       phone: form.phone.trim(),
       email: form.email.trim(),
       district: form.district,
-      address: form.address.trim(),
+      address: fullAddress,
       notes: form.notes.trim(),
       payment,
       trxId: "",
@@ -213,7 +248,15 @@ export default function CheckoutView() {
     try {
       localStorage.setItem(
         "noksha_contact",
-        JSON.stringify({ name: form.name, phone: form.phone, email: form.email, district: form.district, address: form.address })
+        JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          division: form.division,
+          district: form.district,
+          upazila: form.upazila,
+          address: form.address,
+        })
       );
     } catch {
       // Ignore storage errors
@@ -341,22 +384,66 @@ export default function CheckoutView() {
                 </Field>
               </div>
 
-              <Step n="02" title="Delivery" className="mt-14" />
+              <Step n="02" title="Delivery Address" className="mt-14" />
               <div className="grid gap-x-8 sm:grid-cols-2">
-                <Field label="Division / district">
-                  <select className="field cursor-pointer" value={form.district} onChange={set("district")} autoComplete="address-level1">
-                    {BANGLADESH_DISTRICTS.map((d) => (
-                      <option key={d} value={d}>{d}</option>
+                <Field label="Division (বিভাগ)">
+                  <select
+                    className="field cursor-pointer"
+                    value={form.division}
+                    onChange={handleDivisionChange}
+                    aria-label="Division"
+                  >
+                    {BD_DIVISIONS.map((div) => (
+                      <option key={div.name} value={div.name}>
+                        {div.name} — {div.bn}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="District / Zila (জেলা)">
+                  <select
+                    className="field cursor-pointer"
+                    value={form.district}
+                    onChange={handleDistrictChange}
+                    autoComplete="address-level1"
+                    aria-label="District"
+                  >
+                    {currentDivision.districts.map((dist) => (
+                      <option key={dist.name} value={dist.name}>
+                        {dist.name} — {dist.bn}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Upazila / Thana (উপজেলা / থানা)">
+                  <select
+                    className="field cursor-pointer"
+                    value={form.upazila}
+                    onChange={set("upazila")}
+                    autoComplete="address-level2"
+                    aria-label="Upazila or Thana"
+                  >
+                    {currentDistrict.upazilas.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
                     ))}
                   </select>
                 </Field>
                 <Field label="Delivery estimate">
                   <p className="border-b border-[var(--hairline)] py-[0.85rem] text-[0.95rem] text-ink-soft">
-                    {form.district === "Dhaka" ? "1–2 working days" : "3–5 working days"}
+                    {form.district === "Dhaka" ? "1–2 working days (Inside Dhaka)" : "3–5 working days (Nationwide)"}
                   </p>
                 </Field>
-                <Field label="Full address" error={errors.address} className="sm:col-span-2">
-                  <input className="field" autoComplete="street-address" value={form.address} onChange={set("address")} placeholder="House, road, area, thana" {...field("address")} />
+                <Field label="House, road, sector &amp; area" error={errors.address} className="sm:col-span-2">
+                  <input
+                    className="field"
+                    autoComplete="street-address"
+                    value={form.address}
+                    onChange={set("address")}
+                    placeholder="e.g. House 14, Road 6, Block C"
+                    {...field("address")}
+                  />
                 </Field>
                 <Field label="Delivery notes (optional)" className="sm:col-span-2">
                   <input className="field" value={form.notes} onChange={set("notes")} placeholder="Landmark, preferred time, gate instructions" />
