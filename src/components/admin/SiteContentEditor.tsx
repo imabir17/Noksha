@@ -111,23 +111,23 @@ export default function SiteContentEditor({
   const renderImage = (key: string, label: string, fallback: string) => {
     const src = val(key, fallback);
     return (
-      <div className="md:col-span-2 flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl bg-[#FBF8F3] border border-[#D4C5B0]">
+      <div className="md:col-span-2 flex flex-col sm:flex-row items-start gap-4 p-4 rounded-xl bg-[#FAF9F7] border border-black/[0.08]">
         <img
           src={src || fallback}
           alt={label}
-          className="w-28 h-24 object-cover rounded-lg border border-[#B8A68E] bg-[#EFE7DA] shrink-0"
+          className="w-28 h-24 object-cover rounded-lg border border-black/[0.09] bg-[#F3F1ED] shrink-0"
         />
         <div className="flex-1 w-full space-y-2">
           <div className="flex items-center justify-between">
-            <label className="font-bold text-[#14110F] flex items-center gap-1.5">
-              <ImageIcon className="w-4 h-4 text-[#7A5417]" />
+            <label className="font-medium text-[#181512] flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-[#8A6932]" />
               {label}
             </label>
             {src !== fallback && (
               <button
                 type="button"
                 onClick={() => setKey(key, fallback)}
-                className="text-[11px] font-bold text-[#7A5417] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                className="admin-press text-[11.5px] font-medium text-[#8A6932] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" /> Reset Default
               </button>
@@ -140,7 +140,7 @@ export default function SiteContentEditor({
             placeholder={fallback}
             className={inputCls}
           />
-          <label className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-white text-xs font-bold cursor-pointer">
+          <label className="admin-press inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-[12px] font-medium cursor-pointer shadow-2xs">
             <Upload className="w-3.5 h-3.5 text-[#D8BF90]" />
             {uploadingKey === key ? "Uploading…" : "Upload New Image"}
             <input
@@ -158,42 +158,44 @@ export default function SiteContentEditor({
   return (
     <div className={`${cardCls} p-6 space-y-6`}>
       {/* Header + Publish */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E6DDD0] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/[0.07] pb-4">
         <div>
-          <h2 className="text-base font-bold text-[#14110F]">
+          <h2 className="text-[15px] font-semibold text-[#181512] tracking-[-0.01em]">
             Complete Site Content &amp; Media CMS
           </h2>
-          <p className="text-[13px] text-[#2D2620] font-medium mt-0.5">
+          <p className="text-[12.5px] text-[#635A52] font-normal mt-0.5">
             Edit every heading, paragraph, quote, badge, contact detail, and non-product image across the entire website.
           </p>
         </div>
         <button
           type="button"
           onClick={onPublish}
-          className="px-5 py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold text-[13px] rounded-lg inline-flex items-center gap-2 cursor-pointer shadow-sm"
+          className="admin-press px-4 py-2 bg-[#181512] hover:bg-[#2F2721] text-[#FAF9F7] font-medium text-[12.5px] rounded-lg inline-flex items-center gap-2 cursor-pointer shadow-2xs"
         >
-          <Save className="w-4 h-4 text-[#D8BF90]" />
+          <Save className="w-3.5 h-3.5 text-[#D8BF90]" />
           Publish All Changes
         </button>
       </div>
 
-      {/* Sub-navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-[#E6DDD0] pb-4">
+      {/* Segmented Sub-Navigation */}
+      <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-[#F3F1ED]">
         {SECTION_TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setSection(t.id)}
-            className={`px-3.5 py-2 rounded-lg text-[12.5px] font-bold cursor-pointer transition-colors ${
+            className={`admin-press px-3 py-1.5 rounded-lg text-[12px] font-medium cursor-pointer ${
               section === t.id
-                ? "bg-[#2A1F18] text-white"
-                : "bg-[#EFE7DA] text-[#14110F] hover:bg-[#E2D5C1]"
+                ? "bg-white text-[#181512] shadow-[0_1px_2px_rgba(24,21,18,0.06)]"
+                : "text-[#635A52] hover:text-[#181512]"
             }`}
           >
             {t.label}
           </button>
         ))}
       </div>
+
+      <div key={section} className="admin-surface-enter">
 
       {/* 1. ANNOUNCEMENT & HERO */}
       {section === "hero" && (
@@ -493,13 +495,15 @@ export default function SiteContentEditor({
         </div>
       )}
 
-      <div className="flex justify-end border-t border-[#E6DDD0] pt-4">
+      </div>
+
+      <div className="flex justify-end border-t border-black/[0.07] pt-4">
         <button
           type="button"
           onClick={onPublish}
-          className="px-6 py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold text-[13px] rounded-lg inline-flex items-center gap-2 cursor-pointer"
+          className="admin-press px-5 py-2 bg-[#181512] hover:bg-[#2F2721] text-[#FAF9F7] font-medium text-[12.5px] rounded-lg inline-flex items-center gap-2 cursor-pointer shadow-2xs"
         >
-          <Save className="w-4 h-4 text-[#D8BF90]" />
+          <Save className="w-3.5 h-3.5 text-[#D8BF90]" />
           Publish All Changes
         </button>
       </div>

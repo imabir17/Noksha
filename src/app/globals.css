@@ -482,40 +482,126 @@
   );
 }
 
-/* Crisp, high-visibility typography & contrast for Admin Command Centre */
+/* ─── Refined Studio Console (Emil Kowalski Design-Engineering Principles) ─── */
 .admin-ui {
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-  color: #14110F;
-  font-size: 14px;
-  line-height: 1.45;
-  -webkit-font-smoothing: subpixel-antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #181512;
+  background-color: #FAF9F7;
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .admin-ui table th {
-  color: #1E1915;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  color: #635A52;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .admin-ui table td {
-  color: #14110F;
-  font-size: 13.5px;
-  font-weight: 500;
+  color: #181512;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .admin-ui label {
-  color: #1E1915;
-  font-size: 12.5px;
-  font-weight: 700;
+  color: #3D3630;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .admin-ui input,
 .admin-ui select,
 .admin-ui textarea {
-  color: #14110F;
-  font-size: 13.5px;
-  font-weight: 500;
+  color: #181512;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Tactile press feedback for all interactive admin controls */
+.admin-press {
+  transition:
+    transform 150ms var(--ease-out),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.admin-press:active {
+  transform: scale(0.97);
+}
+
+/* Smooth panel / inline editor entrance — never from scale(0), < 220ms */
+.admin-surface-enter {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+@starting-style {
+  .admin-surface-enter {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+
+/* Sonner-inspired toast entrance */
+.admin-toast {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    transform 400ms ease,
+    opacity 320ms ease;
+}
+
+@starting-style {
+  .admin-toast {
+    opacity: 0;
+    transform: translateY(100%) scale(0.96);
+  }
+}
+
+/* Touch-safe hover interactions */
+@media (hover: hover) and (pointer: fine) {
+  .admin-row-hover:hover {
+    background-color: #FAF8F5;
+  }
+
+  .admin-kpi-card {
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .admin-kpi-card:hover {
+    border-color: rgba(24, 21, 18, 0.16);
+    box-shadow: 0 2px 8px rgba(24, 21, 18, 0.05);
+  }
+}
+
+/* Quiet custom scrollbars inside admin main pane */
+.admin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(24, 21, 18, 0.14);
+  border-radius: 999px;
+}
+
+.admin-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(24, 21, 18, 0.25);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -524,7 +610,9 @@
   .reveal-media img,
   .hero-line,
   .hero-image,
-  .swap-fade {
+  .swap-fade,
+  .admin-surface-enter,
+  .admin-toast {
     transform: none !important;
     filter: none !important;
     animation: none !important;
@@ -543,7 +631,8 @@
     transition: opacity 200ms ease;
   }
 
-  .press:active {
+  .press:active,
+  .admin-press:active {
     transform: none;
   }
 }

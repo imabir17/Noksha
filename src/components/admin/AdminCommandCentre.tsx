@@ -396,40 +396,43 @@ export default function AdminCommandCentre() {
   };
 
   const inputCls =
-    "w-full px-3.5 py-2 bg-white border border-[#B8A68E] rounded-lg text-[13.5px] text-[#14110F] font-medium placeholder:text-[#6E5F51] focus:outline-none focus:border-[#2A1F18] focus:ring-1 focus:ring-[#2A1F18]";
-  const cardCls = "bg-white border border-[#D4C5B0] rounded-xl shadow-[0_2px_10px_rgba(30,25,21,0.05)]";
-  const thCls = "py-3 px-4 text-left text-[13px] font-bold uppercase tracking-wider text-[#1E1915] bg-[#EFE7DA] border-b border-[#D4C5B0]";
+    "w-full px-3 py-2 bg-white border border-black/[0.12] rounded-lg text-[13px] text-[#181512] font-normal placeholder:text-[#8A8077] focus:outline-none focus:border-[#181512] focus:ring-2 focus:ring-[#181512]/[0.08] transition-[border-color,box-shadow] duration-150";
+  const cardCls =
+    "bg-white border border-black/[0.08] rounded-xl shadow-[0_1px_2px_rgba(24,21,18,0.04),0_4px_12px_rgba(24,21,18,0.02)]";
+  const thCls =
+    "py-2.5 px-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-[#635A52] bg-[#FAF9F7] border-b border-black/[0.07]";
 
   /* ───────────────────────── 1. Loading & Login Screen ───────────────────────── */
   if (loading && !data) {
     return (
-      <div className="admin-ui min-h-screen bg-[#F7F3EB] text-[#14110F] flex items-center justify-center text-sm font-semibold">
-        Loading Noksha Command Centre…
+      <div className="admin-ui min-h-screen bg-[#FAF9F7] text-[#181512] flex items-center justify-center gap-2.5 text-[13px] font-normal">
+        <span className="h-2 w-2 rounded-full bg-[#B08A4F] animate-pulse" />
+        Loading Noksha Studio Console…
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="admin-ui min-h-screen bg-[#F7F3EB] text-[#14110F] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white border-2 border-[#D4C5B0] rounded-2xl p-8 shadow-xl">
-          <div className="flex flex-col items-center text-center border-b border-[#E6DDD0] pb-6">
+      <div className="admin-ui min-h-screen bg-[#FAF9F7] text-[#181512] flex items-center justify-center p-5">
+        <div className="admin-surface-enter w-full max-w-[400px] bg-white border border-black/[0.08] rounded-2xl p-8 shadow-[0_1px_2px_rgba(24,21,18,0.04),0_12px_32px_rgba(24,21,18,0.06)]">
+          <div className="flex flex-col items-center text-center border-b border-black/[0.07] pb-6">
             <img
               src="/brand/noksha-logo.png"
               alt="Noksha — Handcrafted in Bangladesh"
-              className="h-14 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
-            <p className="text-[13px] uppercase tracking-[0.22em] text-[#7A5417] font-bold mt-4">
-              Command Centre &amp; CRM
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[#8A6932] font-medium mt-4">
+              Studio Console &amp; CRM
             </p>
-            <h1 className="font-display text-3xl font-semibold text-[#14110F] mt-1">
+            <h1 className="font-display text-3xl font-normal text-[#181512] mt-1">
               Staff Sign In
             </h1>
           </div>
 
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
-              <label className="block text-[13px] font-bold text-[#14110F] mb-1.5">
+              <label className="block text-[12px] font-medium text-[#3D3630] mb-1.5">
                 Staff Email
               </label>
               <input
@@ -441,7 +444,7 @@ export default function AdminCommandCentre() {
               />
             </div>
             <div>
-              <label className="block text-[13px] font-bold text-[#14110F] mb-1.5">
+              <label className="block text-[12px] font-medium text-[#3D3630] mb-1.5">
                 Password
               </label>
               <input
@@ -454,34 +457,34 @@ export default function AdminCommandCentre() {
             </div>
 
             {authError && (
-              <p className="text-[13px] font-bold text-[#8C2F2F] bg-[#FCECEC] border border-[#E5B8B8] rounded-lg px-3 py-2">
+              <p className="text-[12.5px] font-medium text-[#9B2C2C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2">
                 {authError}
               </p>
             )}
 
             <button
               type="submit"
-              className="w-full py-3 bg-[#2A1F18] hover:bg-[#4B3527] text-white font-bold text-[13px] uppercase tracking-[0.18em] rounded-lg cursor-pointer transition-colors"
+              className="admin-press w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-white font-medium text-[13px] rounded-lg cursor-pointer shadow-xs"
             >
-              Sign In to Command Centre
+              Sign In
             </button>
           </form>
 
           {/* Quick Role Switcher for Localhost Testing */}
-          <div className="mt-6 pt-5 border-t border-[#E6DDD0]">
-            <p className="text-[13px] font-bold text-[#1E1915] mb-2.5">
-              Quick-fill seeded staff roles:
+          <div className="mt-6 pt-5 border-t border-black/[0.07]">
+            <p className="text-[11.5px] font-medium text-[#635A52] mb-2.5">
+              Quick-fill staff account
             </p>
-            <div className="grid grid-cols-3 gap-2 text-[13px]">
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-[#F3F1ED]">
               <button
                 type="button"
                 onClick={() => {
                   setEmail("owner@noksha.bd");
                   setPassword("NokshaOwner2026!");
                 }}
-                className="px-2.5 py-2 rounded-lg bg-[#EFE7DA] hover:bg-[#E4D8C5] text-[#14110F] border border-[#C9B9A3] font-bold cursor-pointer"
+                className="admin-press px-2 py-1.5 rounded-lg bg-white hover:bg-white/90 text-[#181512] text-[12px] font-medium shadow-2xs cursor-pointer"
               >
-                Owner (Full)
+                Owner
               </button>
               <button
                 type="button"
@@ -489,7 +492,7 @@ export default function AdminCommandCentre() {
                   setEmail("manager@noksha.bd");
                   setPassword("NokshaManager2026!");
                 }}
-                className="px-2.5 py-2 rounded-lg bg-[#EFE7DA] hover:bg-[#E4D8C5] text-[#144740] border border-[#C9B9A3] font-bold cursor-pointer"
+                className="admin-press px-2 py-1.5 rounded-lg bg-white hover:bg-white/90 text-[#144740] text-[12px] font-medium shadow-2xs cursor-pointer"
               >
                 Manager
               </button>
@@ -499,7 +502,7 @@ export default function AdminCommandCentre() {
                   setEmail("support@noksha.bd");
                   setPassword("NokshaSupport2026!");
                 }}
-                className="px-2.5 py-2 rounded-lg bg-[#EFE7DA] hover:bg-[#E4D8C5] text-[#6B4710] border border-[#C9B9A3] font-bold cursor-pointer"
+                className="admin-press px-2 py-1.5 rounded-lg bg-white hover:bg-white/90 text-[#7A5417] text-[12px] font-medium shadow-2xs cursor-pointer"
               >
                 Support
               </button>
@@ -509,9 +512,9 @@ export default function AdminCommandCentre() {
           <div className="mt-6 text-center">
             <Link
               href="/"
-              className="text-[13px] font-bold text-[#1E1915] hover:underline"
+              className="text-[12.5px] font-normal text-[#635A52] hover:text-[#181512] transition-colors"
             >
-              ← Return to Live Storefront
+              ← Return to storefront
             </Link>
           </div>
         </div>
@@ -519,140 +522,183 @@ export default function AdminCommandCentre() {
     );
   }
 
-  const allNavItems: { id: AdminTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: "overview", label: "Command Overview", icon: <Activity className="w-4 h-4 shrink-0" /> },
-    { id: "analytics", label: "Analytics & Exit Funnel", icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
+  const navGroups: {
+    group: string;
+    items: { id: AdminTab; label: string; icon: React.ReactNode; badge?: number; alertBadge?: boolean }[];
+  }[] = [
     {
-      id: "orders",
-      label: "Orders Pipeline",
-      icon: <ShoppingBag className="w-4 h-4 shrink-0" />,
-      badge: metrics?.pendingOrdersCount,
+      group: "Overview",
+      items: [
+        { id: "overview", label: "Command Overview", icon: <Activity className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+        { id: "analytics", label: "Analytics & Funnel", icon: <BarChart3 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+      ],
     },
     {
-      id: "cancellations",
-      label: "Cancellation Requests",
-      icon: <XCircle className="w-4 h-4 shrink-0" />,
-      badge: data.orders.filter((o) => o.cancellationRequested).length,
+      group: "Commerce",
+      items: [
+        {
+          id: "orders",
+          label: "Orders Pipeline",
+          icon: <ShoppingBag className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          badge: metrics?.pendingOrdersCount,
+        },
+        {
+          id: "cancellations",
+          label: "Cancellation Requests",
+          icon: <XCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          badge: data.orders.filter((o) => o.cancellationRequested).length,
+          alertBadge: true,
+        },
+        {
+          id: "collections",
+          label: "Drops & Categories",
+          icon: <Layers className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          badge: data.collections.length,
+        },
+        {
+          id: "products",
+          label: "Products & Inventory",
+          icon: <Package className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          badge: metrics?.lowStockProducts.length,
+        },
+      ],
     },
     {
-      id: "collections",
-      label: "Drops & Categories",
-      icon: <Layers className="w-4 h-4 shrink-0" />,
-      badge: data.collections.length,
+      group: "Customers",
+      items: [
+        { id: "customers", label: "Customers CRM", icon: <Users className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />, badge: data.customers.length },
+        {
+          id: "abandoned",
+          label: "Abandoned Carts",
+          icon: <TrendingDown className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          badge: metrics?.unrecoveredCarts.length,
+        },
+        {
+          id: "leads",
+          label: "Waitlist & Leads",
+          icon: <Sparkles className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          badge: data.leads.filter((l) => l.status === "new").length,
+        },
+        { id: "promos", label: "Promo Codes", icon: <Tag className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+      ],
     },
     {
-      id: "products",
-      label: "Products & Inventory",
-      icon: <Package className="w-4 h-4 shrink-0" />,
-      badge: metrics?.lowStockProducts.length,
+      group: "Workspace",
+      items: [
+        { id: "content", label: "Site Content CMS", icon: <FileText className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+        { id: "staff", label: "Staff & Roles", icon: <Shield className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+        { id: "audit", label: "Activity Audit Log", icon: <Settings className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+      ],
     },
-    { id: "customers", label: "Customers CRM", icon: <Users className="w-4 h-4 shrink-0" />, badge: data.customers.length },
-    {
-      id: "abandoned",
-      label: "Abandoned Checkouts",
-      icon: <TrendingDown className="w-4 h-4 shrink-0" />,
-      badge: metrics?.unrecoveredCarts.length,
-    },
-    {
-      id: "leads",
-      label: "Waitlist & Circle Leads",
-      icon: <Sparkles className="w-4 h-4 shrink-0" />,
-      badge: data.leads.filter((l) => l.status === "new").length,
-    },
-    { id: "promos", label: "Promo Codes", icon: <Tag className="w-4 h-4 shrink-0" /> },
-    { id: "content", label: "Site Content Editor", icon: <FileText className="w-4 h-4 shrink-0" /> },
-    { id: "staff", label: "Staff & Permissions", icon: <Shield className="w-4 h-4 shrink-0" /> },
-    { id: "audit", label: "Activity Audit Log", icon: <Settings className="w-4 h-4 shrink-0" /> },
   ];
-  const navItems = allNavItems.filter((tab) => canAccessSection(data.user.role, tab.id));
+
+  const visibleGroups = navGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((tab) => canAccessSection(data.user.role, tab.id)),
+    }))
+    .filter((g) => g.items.length > 0);
+  const navItems = visibleGroups.flatMap((g) => g.items);
 
   return (
-    <div className="admin-ui min-h-screen lg:h-screen lg:overflow-hidden bg-[#F7F3EB] text-[#14110F] flex flex-col lg:flex-row">
-      {/* Left Command Sidebar — Fixed / Non-Scrolling on Desktop */}
-      <aside className="w-full lg:w-64 lg:h-screen lg:overflow-hidden bg-[#EFE7DA] border-b lg:border-b-0 lg:border-r border-[#D4C5B0] shrink-0 flex flex-col justify-between">
+    <div className="admin-ui min-h-screen lg:h-screen lg:overflow-hidden bg-[#FAF9F7] text-[#181512] flex flex-col lg:flex-row">
+      {/* Left Studio Sidebar — Fixed / Non-Scrolling on Desktop, Regular Weight */}
+      <aside className="w-full lg:w-[244px] lg:h-screen lg:overflow-hidden bg-[#F3F1ED] border-b lg:border-b-0 lg:border-r border-black/[0.07] shrink-0 flex flex-col justify-between select-none">
         <div>
-          <div className="px-4 py-3.5 border-b border-[#D4C5B0] flex items-center justify-between bg-[#FBF8F3]">
+          {/* Brand Header */}
+          <div className="px-4 h-14 border-b border-black/[0.07] flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <img
                 src="/brand/noksha-logo.png"
                 alt="NOKSHA"
-                className="h-9 w-auto object-contain"
+                className="h-7 w-auto object-contain"
               />
             </Link>
             <Link
               href="/"
               target="_blank"
-              className="p-1.5 rounded-lg bg-[#EFE7DA] hover:bg-[#E2D5C1] text-[#14110F] border border-[#C9B9A3]"
+              className="admin-press p-1.5 rounded-lg text-[#635A52] hover:text-[#181512] hover:bg-black/[0.05]"
               title="Open Live Storefront"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
             </Link>
           </div>
 
-          <div className="px-4 py-2 bg-[#E5DAC8] border-b border-[#D4C5B0] flex items-center justify-between">
-            <span className="text-[11px] font-normal uppercase tracking-[0.14em] text-[#14110F]">
-              Command Centre
-            </span>
-            <span className="px-2 py-0.5 rounded bg-[#2A1F18] text-white text-[10px] font-normal uppercase">
-              {data.user.role}
-            </span>
-          </div>
-
-          <nav className="p-2 flex lg:flex-col gap-0.5 overflow-x-auto lg:overflow-visible">
-            {navItems.map((item) => {
-              const active = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-[13.5px] font-normal whitespace-nowrap cursor-pointer transition-colors ${
-                    active
-                      ? "bg-[#2A1F18] text-white shadow-sm"
-                      : "text-[#14110F] hover:bg-[#E2D5C1]"
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5 truncate">
-                    {item.icon}
-                    <span className="truncate">{item.label}</span>
-                  </span>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span
-                      className={`font-num px-1.5 py-0.2 rounded text-[11px] font-normal shrink-0 ${
+          {/* Grouped Navigation */}
+          <nav className="p-2.5 flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible">
+            {visibleGroups.map((group) => (
+              <div key={group.group} className="flex lg:flex-col gap-0.5 shrink-0">
+                <p className="hidden lg:block px-2.5 pb-1 text-[10.5px] font-normal uppercase tracking-[0.08em] text-[#7D7369]">
+                  {group.group}
+                </p>
+                {group.items.map((item) => {
+                  const active = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveTab(item.id)}
+                      className={`admin-press relative flex items-center justify-between gap-2 px-2.5 py-[5px] rounded-lg text-[13px] font-normal whitespace-nowrap cursor-pointer ${
                         active
-                          ? "bg-[#B08A4F] text-white"
-                          : "bg-white text-[#14110F] border border-[#B8A68E]"
+                          ? "bg-white text-[#181512] shadow-[0_1px_2px_rgba(24,21,18,0.06),0_0_0_1px_rgba(24,21,18,0.06)]"
+                          : "text-[#463F39] hover:text-[#181512] hover:bg-black/[0.04]"
                       }`}
                     >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                      <span className="flex items-center gap-2.5 truncate">
+                        <span className={active ? "text-[#B08A4F]" : "text-[#7D7369]"}>
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span
+                          className={`font-num px-1.5 py-[1px] rounded-full text-[10.5px] font-normal shrink-0 ${
+                            item.alertBadge
+                              ? "bg-[#FCECEC] text-[#9B2C2C]"
+                              : active
+                              ? "bg-[#F3F1ED] text-[#181512]"
+                              : "bg-black/[0.05] text-[#635A52]"
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 
-        <div className="p-3.5 border-t border-[#D4C5B0] bg-[#FBF8F3] hidden lg:block space-y-2.5">
-          <div className="text-[13px]">
-            <p className="font-normal text-[#14110F] truncate">{data.user.name}</p>
-            <p className="text-[#2D2620] font-normal truncate">{data.user.email}</p>
+        {/* Bottom Profile Strip */}
+        <div className="p-3 border-t border-black/[0.07] hidden lg:block space-y-2.5">
+          <div className="flex items-center gap-2.5 px-1">
+            <div className="w-7 h-7 rounded-full bg-[#181512] text-[#FAF9F7] flex items-center justify-center text-[11px] font-normal shrink-0">
+              {data.user.name.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[12.5px] font-normal text-[#181512] truncate">{data.user.name}</p>
+              </div>
+              <p className="text-[11px] text-[#635A52] font-normal truncate">{data.user.role}</p>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               type="button"
               onClick={fetchDashboard}
-              className="flex-1 py-1.5 px-2.5 rounded-lg bg-[#EFE7DA] hover:bg-[#E2D5C1] text-[#14110F] border border-[#B8A68E] text-[13px] font-normal flex items-center justify-center gap-1.5 cursor-pointer"
+              className="admin-press flex-1 py-1.5 px-2.5 rounded-lg bg-white hover:bg-[#FAF9F7] text-[#181512] border border-black/[0.08] text-[12px] font-normal flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
+              <RefreshCw className="w-3 h-3 text-[#635A52]" />
+              Sync
             </button>
             <button
               type="button"
               onClick={handleLogout}
-              className="py-1.5 px-2.5 rounded-lg bg-[#FCECEC] hover:bg-[#F7D6D6] text-[#8C2F2F] border border-[#E5B8B8] text-[13px] font-normal flex items-center gap-1.5 cursor-pointer"
+              className="admin-press py-1.5 px-2.5 rounded-lg bg-white hover:bg-[#FEF2F2] text-[#635A52] hover:text-[#9B2C2C] border border-black/[0.08] text-[12px] font-normal flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3 h-3" />
               Out
             </button>
           </div>
@@ -660,40 +706,39 @@ export default function AdminCommandCentre() {
       </aside>
 
       {/* Main Content Area — Independently Scrollable */}
-      <div className="flex-1 min-w-0 lg:h-screen lg:overflow-y-auto p-5 sm:p-8 space-y-7">
-        {/* Top Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#DED3C2] pb-5 bg-[#FBF8F3]/90">
-          <div className="flex items-center gap-3.5">
-            <img src="/brand/noksha-mark.png" alt="" className="w-9 h-9 hidden sm:block" />
-            <div>
-              <h1 className="font-display text-3xl sm:text-4xl font-normal text-[#1E1915]">
-                {navItems.find((n) => n.id === activeTab)?.label}
-              </h1>
-              <p className="text-[13px] text-[#1E1915] font-medium mt-0.5">
-                Live SQLite Storefront Sync · Signed in as{" "}
-                <strong className="text-[#1E1915]">{data.user.email}</strong> (
-                {data.user.role.toUpperCase()})
-              </p>
-            </div>
+      <div className="admin-scroll flex-1 min-w-0 lg:h-screen lg:overflow-y-auto">
+        {/* Sticky Frosted Header */}
+        <header className="sticky top-0 z-20 bg-[#FAF9F7]/85 backdrop-blur-md border-b border-black/[0.07] px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-[15px] font-semibold tracking-[-0.01em] text-[#181512] truncate">
+              {navItems.find((n) => n.id === activeTab)?.label}
+            </h1>
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white border border-black/[0.07] text-[11px] text-[#635A52]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#1B7A5C]" />
+              Live sync
+            </span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={copyDailyDigest}
-              className="px-4 py-2.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="admin-press px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FAF9F7] text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Copy className="w-3.5 h-3.5 text-[#D8BF90]" />
-              Copy WhatsApp Sales Digest
+              <span className="hidden sm:inline">Copy Sales Digest</span>
+              <span className="sm:hidden">Digest</span>
             </button>
             <Link
               href="/"
               target="_blank"
-              className="px-4 py-2.5 rounded-lg bg-white hover:bg-[#F4EDE1] text-[#1E1915] border border-[#C9B9A3] text-[13px] font-bold flex items-center gap-1.5"
+              className="admin-press px-3 py-1.5 rounded-lg bg-white hover:bg-[#F3F1ED] text-[#181512] border border-black/[0.09] text-[12.5px] font-medium flex items-center gap-1.5 shadow-2xs"
             >
-              View Live Site <ExternalLink className="w-3.5 h-3.5" />
+              Storefront <ExternalLink className="w-3 h-3 text-[#635A52]" />
             </Link>
           </div>
-        </div>
+        </header>
+
+        <div key={activeTab} className="admin-surface-enter p-5 sm:p-8 max-w-[1440px] mx-auto space-y-6">
 
         {/* ───────────────────────── TAB 1: COMMAND OVERVIEW ───────────────────────── */}
         {activeTab === "overview" && metrics && (
@@ -730,7 +775,7 @@ export default function AdminCommandCentre() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Inventory Alerts */}
               <div className={`lg:col-span-6 ${cardCls} p-5 space-y-4`}>
-                <div className="flex items-center justify-between border-b border-[#E6DDD0] pb-3">
+                <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
                   <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#8C2F2F] flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
                     Inventory &amp; 1-of-1 Drop Alerts ({metrics.lowStockProducts.length})
@@ -744,14 +789,14 @@ export default function AdminCommandCentre() {
                   </button>
                 </div>
 
-                <div className="divide-y divide-[#E6DDD0] text-[13px]">
+                <div className="divide-y divide-black/[0.06] text-[13px]">
                   {metrics.lowStockProducts.map((p) => (
                     <div key={p.id} className="py-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={p.image}
                           alt=""
-                          className="w-11 h-13 rounded object-cover shrink-0 border border-[#DED3C2]"
+                          className="w-11 h-13 rounded object-cover shrink-0 border border-black/[0.07]"
                         />
                         <div className="min-w-0">
                           <p className="font-bold text-[#1E1915] truncate">{p.name}</p>
@@ -789,7 +834,7 @@ export default function AdminCommandCentre() {
 
               {/* Where Visitors Exit Snapshot */}
               <div className={`lg:col-span-6 ${cardCls} p-5 space-y-4`}>
-                <div className="flex items-center justify-between border-b border-[#E6DDD0] pb-3">
+                <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
                   <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#2A1F18] flex items-center gap-2">
                     <TrendingDown className="w-4 h-4 text-[#8C2F2F]" />
                     Customer Journey &amp; Exit Drop-Off Snapshot
@@ -813,7 +858,7 @@ export default function AdminCommandCentre() {
                           <span className="text-[#8C2F2F] font-bold">{f.exitsHere} exited here</span>
                         </span>
                       </div>
-                      <div className="h-2.5 bg-[#EFE8DC] rounded-full overflow-hidden border border-[#DED3C2]">
+                      <div className="h-2.5 bg-[#EFE8DC] rounded-full overflow-hidden border border-black/[0.07]">
                         <div
                           className="h-full bg-[#B08A4F] rounded-full"
                           style={{ width: `${Math.max(4, f.pctOfTotal)}%` }}
@@ -827,7 +872,7 @@ export default function AdminCommandCentre() {
 
             {/* Recent Orders Table */}
             <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-5 border-b border-[#DED3C2] flex items-center justify-between bg-[#FBF8F3]">
+              <div className="p-5 border-b border-black/[0.07] flex items-center justify-between bg-[#FAF9F7]">
                 <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
                   Recent Orders
                 </h2>
@@ -852,9 +897,9 @@ export default function AdminCommandCentre() {
                       <th className={`${thCls} text-right`}>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6DDD0]">
+                  <tbody className="divide-y divide-black/[0.06]">
                     {data.orders.slice(0, 6).map((o) => (
-                      <tr key={o.id} className="hover:bg-[#FBF8F3]">
+                      <tr key={o.id} className="admin-row-hover">
                         <td className="py-3.5 px-4 font-num font-bold text-[#2A1F18]">{o.id}</td>
                         <td className="py-3.5 px-4">
                           <p className="font-bold text-[#1E1915]">{o.customerName}</p>
@@ -877,13 +922,13 @@ export default function AdminCommandCentre() {
                               setActiveTab("orders");
                               openOrderInspector(o);
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold cursor-pointer"
                           >
                             Manage
                           </button>
                           <Link
                             href={`/admin/invoice/${o.id}`}
-                            className="px-3 py-1.5 rounded-lg bg-[#F4EDE1] hover:bg-[#E8DEC9] text-[#1E1915] border border-[#C9B9A3] font-bold inline-block"
+                            className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] font-bold inline-block"
                           >
                             Invoice
                           </Link>
@@ -932,7 +977,7 @@ export default function AdminCommandCentre() {
 
             {/* Step-by-Step Customer Funnel & Exit Table */}
             <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-5 border-b border-[#DED3C2] bg-[#FBF8F3]">
+              <div className="p-5 border-b border-black/[0.07] bg-[#FAF9F7]">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-[#1E1915]">
                   Full Customer Journey Funnel &amp; Step-by-Step Exit Analysis
                 </h2>
@@ -953,16 +998,16 @@ export default function AdminCommandCentre() {
                       <th className={`${thCls} text-right`}>Exited Site at This Step</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6DDD0]">
+                  <tbody className="divide-y divide-black/[0.06]">
                     {data.analytics.funnel.map((f) => (
-                      <tr key={f.key} className="hover:bg-[#FBF8F3]">
+                      <tr key={f.key} className="admin-row-hover">
                         <td className="py-3.5 px-4 font-bold text-[#1E1915]">{f.label}</td>
                         <td className="py-3.5 px-4 font-num font-bold text-[#2A1F18]">
                           {f.sessions}
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-28 h-2.5 bg-[#EFE8DC] rounded-full overflow-hidden border border-[#DED3C2]">
+                            <div className="w-28 h-2.5 bg-[#EFE8DC] rounded-full overflow-hidden border border-black/[0.07]">
                               <div
                                 className="h-full bg-[#B08A4F]"
                                 style={{ width: `${Math.max(4, f.pctOfTotal)}%` }}
@@ -993,7 +1038,7 @@ export default function AdminCommandCentre() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Top Pages & Exit Rates */}
               <div className={`lg:col-span-6 ${cardCls} overflow-hidden`}>
-                <div className="p-4 border-b border-[#DED3C2] bg-[#FBF8F3]">
+                <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7]">
                   <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
                     Most Visited Pages &amp; Page Exit Rates
                   </h2>
@@ -1009,9 +1054,9 @@ export default function AdminCommandCentre() {
                         <th className={`${thCls} text-right`}>Exit Rate</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E6DDD0]">
+                    <tbody className="divide-y divide-black/[0.06]">
                       {data.analytics.topPages.map((pg) => (
-                        <tr key={pg.path} className="hover:bg-[#FBF8F3]">
+                        <tr key={pg.path} className="admin-row-hover">
                           <td className="py-3 px-4 font-mono font-bold text-[#2A1F18]">
                             {pg.path}
                           </td>
@@ -1037,7 +1082,7 @@ export default function AdminCommandCentre() {
               {/* Traffic Sources & Device Split */}
               <div className="lg:col-span-6 space-y-6">
                 <div className={`${cardCls} p-5 space-y-4`}>
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] border-b border-[#E6DDD0] pb-2.5">
+                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] border-b border-black/[0.07] pb-2.5">
                     Acquisition Channels &amp; Devices
                   </h2>
                   <div className="grid grid-cols-2 gap-6 text-[13px]">
@@ -1047,7 +1092,7 @@ export default function AdminCommandCentre() {
                         {data.analytics.referrers.map((r) => (
                           <div
                             key={r.referrer}
-                            className="flex justify-between border-b border-[#E6DDD0] pb-1.5"
+                            className="flex justify-between border-b border-black/[0.07] pb-1.5"
                           >
                             <span className="text-[#1E1915] font-bold">{r.referrer}</span>
                             <span className="font-num text-[#7A5417] font-bold">
@@ -1063,7 +1108,7 @@ export default function AdminCommandCentre() {
                         {data.analytics.devices.map((d) => (
                           <div
                             key={d.device}
-                            className="flex justify-between border-b border-[#E6DDD0] pb-1.5"
+                            className="flex justify-between border-b border-black/[0.07] pb-1.5"
                           >
                             <span className="text-[#1E1915] uppercase font-bold">{d.device}</span>
                             <span className="font-num text-[#1B5E55] font-bold">
@@ -1078,7 +1123,7 @@ export default function AdminCommandCentre() {
 
                 {/* Daily Traffic Trend */}
                 <div className={`${cardCls} overflow-hidden`}>
-                  <div className="p-4 border-b border-[#DED3C2] bg-[#FBF8F3]">
+                  <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7]">
                     <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
                       Daily Traffic &amp; Page Views Trend
                     </h2>
@@ -1093,9 +1138,9 @@ export default function AdminCommandCentre() {
                           <th className={`${thCls} text-right`}>Page Views</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#E6DDD0]">
+                      <tbody className="divide-y divide-black/[0.06]">
                         {data.analytics.daily.map((d) => (
-                          <tr key={d.day} className="hover:bg-[#FBF8F3]">
+                          <tr key={d.day} className="admin-row-hover">
                             <td className="py-2.5 px-4 font-num font-semibold text-[#1E1915]">
                               {d.day}
                             </td>
@@ -1119,7 +1164,7 @@ export default function AdminCommandCentre() {
 
             {/* Product Performance Matrix */}
             <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-5 border-b border-[#DED3C2] bg-[#FBF8F3] flex items-center justify-between">
+              <div className="p-5 border-b border-black/[0.07] bg-[#FAF9F7] flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-wider text-[#1E1915]">
                     Product Conversion &amp; Interest Matrix
@@ -1157,7 +1202,7 @@ export default function AdminCommandCentre() {
                       ])
                     )
                   }
-                  className="px-3.5 py-2 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export CSV
@@ -1178,7 +1223,7 @@ export default function AdminCommandCentre() {
                       <th className={`${thCls} text-right`}>Revenue</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6DDD0]">
+                  <tbody className="divide-y divide-black/[0.06]">
                     {[...data.products]
                       .sort((a, b) => b.viewsCount - a.viewsCount)
                       .map((p) => {
@@ -1187,7 +1232,7 @@ export default function AdminCommandCentre() {
                             ? ((p.addToBagCount / p.viewsCount) * 100).toFixed(1)
                             : "0.0";
                         return (
-                          <tr key={p.id} className="hover:bg-[#FBF8F3]">
+                          <tr key={p.id} className="admin-row-hover">
                             <td className="py-3.5 px-4">
                               <p className="font-bold text-[#1E1915]">{p.name}</p>
                               <p className="font-mono text-[11px] text-[#1E1915] font-semibold">
@@ -1236,8 +1281,8 @@ export default function AdminCommandCentre() {
                     onClick={() => setOrderFilter(st)}
                     className={`px-3 py-1.5 rounded-lg text-[13px] font-bold uppercase cursor-pointer ${
                       orderFilter === st
-                        ? "bg-[#2A1F18] text-[#FBF8F3]"
-                        : "bg-[#F4EDE1] text-[#2A1F18] hover:bg-[#E8DEC9]"
+                        ? "bg-[#181512] text-[#FBF8F3]"
+                        : "bg-[#F3F1ED] text-[#2A1F18] hover:bg-[#E9E6E0]"
                     }`}
                   >
                     {st}
@@ -1253,7 +1298,7 @@ export default function AdminCommandCentre() {
                     value={orderSearch}
                     onChange={(e) => setOrderSearch(e.target.value)}
                     placeholder="Search ID, name, phone, district…"
-                    className="pl-8 pr-3 py-1.5 bg-white border border-[#C9B9A3] rounded-lg text-[13px] text-[#1E1915] font-medium focus:outline-none focus:border-[#2A1F18]"
+                    className="pl-8 pr-3 py-1.5 bg-white border border-black/[0.10] rounded-lg text-[13px] text-[#1E1915] font-medium focus:outline-none focus:border-[#2A1F18]"
                   />
                 </div>
                 <button
@@ -1293,7 +1338,7 @@ export default function AdminCommandCentre() {
                       ])
                     )
                   }
-                  className="px-3.5 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export CSV
@@ -1315,13 +1360,13 @@ export default function AdminCommandCentre() {
                       <th className={`${thCls} text-right`}>Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6DDD0]">
+                  <tbody className="divide-y divide-black/[0.06]">
                     {filteredOrders.map((o) => (
                       <tr
                         key={o.id}
                         onClick={() => openOrderInspector(o)}
-                        className={`cursor-pointer hover:bg-[#FBF8F3] ${
-                          selectedOrder?.id === o.id ? "bg-[#F4EDE1]" : ""
+                        className={`cursor-pointer admin-row-hover ${
+                          selectedOrder?.id === o.id ? "bg-[#F3F1ED]" : ""
                         }`}
                       >
                         <td className="py-3.5 px-4">
@@ -1356,7 +1401,7 @@ export default function AdminCommandCentre() {
                           <Link
                             href={`/admin/invoice/${o.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F4EDE1] hover:bg-[#E8DEC9] text-[#1E1915] border border-[#C9B9A3] font-bold"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] font-bold"
                             title="Print Invoice / Packing Slip"
                           >
                             <Printer className="w-3.5 h-3.5" />
@@ -1377,7 +1422,7 @@ export default function AdminCommandCentre() {
                   </p>
                 ) : (
                   <>
-                    <div className="flex items-start justify-between border-b border-[#E6DDD0] pb-4">
+                    <div className="flex items-start justify-between border-b border-black/[0.07] pb-4">
                       <div>
                         <span className="text-[11px] uppercase tracking-widest text-[#8C6528] font-bold">
                           Order Inspector
@@ -1407,7 +1452,7 @@ export default function AdminCommandCentre() {
                         </a>
                         <Link
                           href={`/admin/invoice/${selectedOrder.id}`}
-                          className="px-3 py-1.5 rounded-lg bg-[#F4EDE1] hover:bg-[#E8DEC9] text-[#1E1915] border border-[#C9B9A3] text-[13px] font-bold flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] text-[13px] font-bold flex items-center gap-1"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           Print Slip
@@ -1421,7 +1466,7 @@ export default function AdminCommandCentre() {
                       {selectedOrder.items.map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between bg-[#FBF8F3] p-3 rounded-lg border border-[#DED3C2]"
+                          className="flex items-center justify-between bg-[#FAF9F7] p-3 rounded-lg border border-black/[0.07]"
                         >
                           <div>
                             <p className="font-bold text-[#1E1915]">
@@ -1451,7 +1496,7 @@ export default function AdminCommandCentre() {
                     </div>
 
                     {/* Pipeline Form */}
-                    <div className="space-y-3 border-t border-[#E6DDD0] pt-4 text-[13px]">
+                    <div className="space-y-3 border-t border-black/[0.07] pt-4 text-[13px]">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block font-bold text-[#2A1F18] mb-1">
@@ -1564,14 +1609,14 @@ export default function AdminCommandCentre() {
                             );
                           }
                         }}
-                        className="w-full py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
+                        className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
                       >
                         Save Order &amp; Pipeline Update
                       </button>
                     </div>
 
                     {/* Timeline */}
-                    <div className="border-t border-[#E6DDD0] pt-4 space-y-2 text-[13px]">
+                    <div className="border-t border-black/[0.07] pt-4 space-y-2 text-[13px]">
                       <p className="uppercase text-[#1E1915] font-bold">Order Status Timeline</p>
                       <div className="space-y-2">
                         {selectedOrder.timeline.map((t, i) => (
@@ -1614,7 +1659,7 @@ export default function AdminCommandCentre() {
               return (
                 <div className="space-y-8">
                   <div className={`${cardCls} overflow-hidden`}>
-                    <div className="px-5 py-3.5 bg-[#EFE7DA] border-b border-[#D4C5B0] flex items-center justify-between">
+                    <div className="px-5 py-3.5 bg-[#F3F1ED] border-b border-black/[0.08] flex items-center justify-between">
                       <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#8C2F2F]">
                         Pending Cancellation Requests ({pendingCancels.length})
                       </h2>
@@ -1636,9 +1681,9 @@ export default function AdminCommandCentre() {
                             <th className={`${thCls} text-right`}>Decision</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#E6DDD0]">
+                        <tbody className="divide-y divide-black/[0.06]">
                           {pendingCancels.map((o) => (
-                            <tr key={o.id} className="hover:bg-[#FBF8F3]">
+                            <tr key={o.id} className="admin-row-hover">
                               <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
                                 <p>{o.id}</p>
                                 <p className="text-[11px] font-normal text-[#2D2620]">
@@ -1700,7 +1745,7 @@ export default function AdminCommandCentre() {
                                       `Dismissed cancellation request for ${o.id}`
                                     )
                                   }
-                                  className="px-3 py-1.5 rounded-lg bg-[#EFE7DA] hover:bg-[#E2D5C1] text-[#14110F] border border-[#B8A68E] text-[12px] font-bold cursor-pointer"
+                                  className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#14110F] border border-black/[0.12] text-[12px] font-bold cursor-pointer"
                                 >
                                   Dismiss
                                 </button>
@@ -1714,7 +1759,7 @@ export default function AdminCommandCentre() {
 
                   {cancelledHistory.length > 0 && (
                     <div className={`${cardCls} overflow-hidden`}>
-                      <div className="px-5 py-3.5 bg-[#EFE7DA] border-b border-[#D4C5B0]">
+                      <div className="px-5 py-3.5 bg-[#F3F1ED] border-b border-black/[0.08]">
                         <h3 className="text-[13px] font-bold uppercase tracking-wider text-[#14110F]">
                           Cancelled Orders History ({cancelledHistory.length})
                         </h3>
@@ -1729,9 +1774,9 @@ export default function AdminCommandCentre() {
                             <th className={thCls}>Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#E6DDD0]">
+                        <tbody className="divide-y divide-black/[0.06]">
                           {cancelledHistory.map((o) => (
-                            <tr key={o.id} className="hover:bg-[#FBF8F3]">
+                            <tr key={o.id} className="admin-row-hover">
                               <td className="py-3 px-4 font-num font-bold text-[#14110F]">{o.id}</td>
                               <td className="py-3 px-4">
                                 <span className="font-bold text-[#14110F]">{o.customerName}</span> ·{" "}
@@ -1782,7 +1827,7 @@ export default function AdminCommandCentre() {
                       sortOrder: data.collections.length + 1,
                     })
                   }
-                  className="px-4 py-2.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Plus className="w-4 h-4 text-[#D8BF90]" />
                   Create New Exclusive Drop
@@ -1790,8 +1835,8 @@ export default function AdminCommandCentre() {
               </div>
 
               {editingCollection && (
-                <div className="bg-white border-2 border-[#B08A4F] rounded-xl p-6 space-y-5 shadow-lg">
-                  <div className="flex items-center justify-between border-b border-[#E6DDD0] pb-3">
+                <div className="bg-white admin-surface-enter border border-black/[0.12] rounded-xl p-6 space-y-5 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
                     <h3 className="text-base font-bold text-[#1E1915]">
                       {editingCollection.id
                         ? `Edit Exclusive Drop: ${editingCollection.dropNumber || editingCollection.shortName} — ${editingCollection.title}`
@@ -1976,12 +2021,12 @@ export default function AdminCommandCentre() {
                   </div>
 
                   {/* Banner & Hero Image Upload */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FBF8F3] p-4 rounded-xl border border-[#DED3C2] text-[13px]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF9F7] p-4 rounded-xl border border-black/[0.07] text-[13px]">
                     <div className="flex items-start gap-3">
                       <img
                         src={editingCollection.heroImage || "/images/hero-courtyard.png"}
                         alt="Card Preview"
-                        className="w-20 h-24 object-cover rounded border border-[#C9B9A3] shrink-0"
+                        className="w-20 h-24 object-cover rounded border border-black/[0.10] shrink-0"
                       />
                       <div className="flex-1 space-y-2">
                         <label className="block font-bold text-[#2A1F18]">
@@ -1998,7 +2043,7 @@ export default function AdminCommandCentre() {
                           }
                           className={inputCls}
                         />
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] cursor-pointer text-xs font-bold">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] cursor-pointer text-xs font-bold">
                           <Upload className="w-3.5 h-3.5 text-[#D8BF90]" />
                           {uploadingImg ? "Uploading…" : "Upload Card Image"}
                           <input
@@ -2019,7 +2064,7 @@ export default function AdminCommandCentre() {
                           "/images/hero-courtyard.png"
                         }
                         alt="Banner Preview"
-                        className="w-28 h-20 object-cover rounded border border-[#C9B9A3] shrink-0"
+                        className="w-28 h-20 object-cover rounded border border-black/[0.10] shrink-0"
                       />
                       <div className="flex-1 space-y-2">
                         <label className="block font-bold text-[#2A1F18]">
@@ -2036,7 +2081,7 @@ export default function AdminCommandCentre() {
                           }
                           className={inputCls}
                         />
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] cursor-pointer text-xs font-bold">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] cursor-pointer text-xs font-bold">
                           <Upload className="w-3.5 h-3.5 text-[#D8BF90]" />
                           {uploadingImg ? "Uploading…" : "Upload Banner Image"}
                           <input
@@ -2100,7 +2145,7 @@ export default function AdminCommandCentre() {
                       <button
                         type="button"
                         onClick={() => setEditingCollection(null)}
-                        className="px-4 py-2 rounded-lg bg-[#F4EDE1] text-[#2A1F18] border border-[#C9B9A3] text-[13px] font-bold cursor-pointer"
+                        className="px-4 py-2 rounded-lg bg-[#F3F1ED] text-[#2A1F18] border border-black/[0.10] text-[13px] font-bold cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -2113,7 +2158,7 @@ export default function AdminCommandCentre() {
                           );
                           if (ok) setEditingCollection(null);
                         }}
-                        className="px-5 py-2 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold cursor-pointer"
+                        className="px-5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold cursor-pointer"
                       >
                         Save Drop Collection
                       </button>
@@ -2135,15 +2180,15 @@ export default function AdminCommandCentre() {
                       <th className={`${thCls} text-right`}>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6DDD0]">
+                  <tbody className="divide-y divide-black/[0.06]">
                     {data.collections.map((col) => {
                       const pieceCount = data.products.filter(
                         (p) => p.collectionId === col.id
                       ).length;
                       return (
-                        <tr key={col.id} className="hover:bg-[#FBF8F3]">
+                        <tr key={col.id} className="admin-row-hover">
                           <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
-                            <span className="px-2.5 py-1 rounded bg-[#2A1F18] text-white text-[12px]">
+                            <span className="px-2.5 py-1 rounded bg-[#181512] text-white text-[12px]">
                               {col.dropNumber || col.shortName}
                             </span>
                           </td>
@@ -2151,7 +2196,7 @@ export default function AdminCommandCentre() {
                             <img
                               src={col.heroImage}
                               alt={col.title}
-                              className="w-12 h-14 rounded object-cover shrink-0 border border-[#C9B9A3]"
+                              className="w-12 h-14 rounded object-cover shrink-0 border border-black/[0.10]"
                             />
                             <div>
                               <p className="font-bold text-[#14110F]">{col.title}</p>
@@ -2179,7 +2224,7 @@ export default function AdminCommandCentre() {
                                   `Updated ${col.dropNumber} status to ${e.target.value}`
                                 )
                               }
-                              className="px-3 py-1.5 bg-white border border-[#B8A68E] rounded-lg text-[12.5px] font-bold text-[#14110F] cursor-pointer"
+                              className="px-3 py-1.5 bg-white border border-black/[0.12] rounded-lg text-[12.5px] font-bold text-[#14110F] cursor-pointer"
                             >
                               <option value="upcoming">Upcoming Preview</option>
                               <option value="prebooking">Open for Pre-Booking</option>
@@ -2194,14 +2239,14 @@ export default function AdminCommandCentre() {
                             <Link
                               href={`/collections/${col.id}`}
                               target="_blank"
-                              className="px-3 py-1.5 rounded-lg bg-[#EFE7DA] hover:bg-[#E2D5C1] text-[#14110F] border border-[#B8A68E] font-bold inline-flex items-center gap-1"
+                              className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#14110F] border border-black/[0.12] font-bold inline-flex items-center gap-1"
                             >
                               Drop Page <ExternalLink className="w-3 h-3" />
                             </Link>
                             <button
                               type="button"
                               onClick={() => setEditingCollection(col)}
-                              className="px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold cursor-pointer"
                             >
                               Edit Drop
                             </button>
@@ -2234,7 +2279,7 @@ export default function AdminCommandCentre() {
             </div>
 
             {/* PART B: STORE PRODUCT CATEGORIES (Light Shades, Nakshi Kanthas, Wooden Jewelry Boxes, etc.) */}
-            <div className="space-y-5 border-t-2 border-[#D4C5B0] pt-8">
+            <div className="space-y-5 border-t-2 border-black/[0.08] pt-8">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-bold text-[#14110F]">
@@ -2252,7 +2297,7 @@ export default function AdminCommandCentre() {
                       sortOrder: (data.categories?.length ?? 3) + 1,
                     })
                   }
-                  className="px-4 py-2.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Plus className="w-4 h-4 text-[#D8BF90]" />
                   Add New Category
@@ -2260,8 +2305,8 @@ export default function AdminCommandCentre() {
               </div>
 
               {editingCategory && (
-                <div className="bg-white border-2 border-[#B08A4F] rounded-xl p-6 space-y-4 shadow-lg">
-                  <div className="flex items-center justify-between border-b border-[#E6DDD0] pb-3">
+                <div className="bg-white admin-surface-enter border border-black/[0.12] rounded-xl p-6 space-y-4 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
                     <h3 className="text-base font-bold text-[#14110F]">
                       {editingCategory.id
                         ? `Edit Category: ${editingCategory.name}`
@@ -2353,7 +2398,7 @@ export default function AdminCommandCentre() {
                     <button
                       type="button"
                       onClick={() => setEditingCategory(null)}
-                      className="px-4 py-2 rounded-lg bg-[#EFE7DA] text-[#14110F] border border-[#B8A68E] text-[13px] font-bold cursor-pointer"
+                      className="px-4 py-2 rounded-lg bg-[#F3F1ED] text-[#14110F] border border-black/[0.12] text-[13px] font-bold cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -2366,7 +2411,7 @@ export default function AdminCommandCentre() {
                         );
                         if (ok) setEditingCategory(null);
                       }}
-                      className="px-5 py-2 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-white text-[13px] font-bold cursor-pointer"
+                      className="px-5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-[13px] font-bold cursor-pointer"
                     >
                       Save Category
                     </button>
@@ -2386,13 +2431,13 @@ export default function AdminCommandCentre() {
                       <th className={`${thCls} text-right`}>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6DDD0]">
+                  <tbody className="divide-y divide-black/[0.06]">
                     {(data.categories || []).map((cat) => {
                       const catProducts = data.products.filter((p) => p.category === cat.id);
                       const storeCount = catProducts.filter((p) => !p.collectionId).length;
                       const dropCount = catProducts.filter((p) => Boolean(p.collectionId)).length;
                       return (
-                        <tr key={cat.id} className="hover:bg-[#FBF8F3]">
+                        <tr key={cat.id} className="admin-row-hover">
                           <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
                             #{cat.sortOrder}
                           </td>
@@ -2417,7 +2462,7 @@ export default function AdminCommandCentre() {
                             <button
                               type="button"
                               onClick={() => setEditingCategory(cat)}
-                              className="px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-white font-bold cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white font-bold cursor-pointer"
                             >
                               Edit
                             </button>
@@ -2457,7 +2502,7 @@ export default function AdminCommandCentre() {
               <button
                 type="button"
                 onClick={() => setEditingProduct({ ...EMPTY_PRODUCT })}
-                className="px-4 py-2.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4 text-[#D8BF90]" />
                 Add New Product
@@ -2466,8 +2511,8 @@ export default function AdminCommandCentre() {
 
             {/* Product Editor Modal / Panel */}
             {editingProduct && (
-              <div className="bg-white border-2 border-[#B08A4F] rounded-xl p-6 space-y-5 shadow-lg">
-                <div className="flex items-center justify-between border-b border-[#E6DDD0] pb-3">
+              <div className="bg-white admin-surface-enter border border-black/[0.12] rounded-xl p-6 space-y-5 shadow-lg">
+                <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
                   <h2 className="text-base font-bold text-[#14110F]">
                     {editingProduct.id
                       ? `Edit Product: ${editingProduct.name}`
@@ -2678,7 +2723,7 @@ export default function AdminCommandCentre() {
                       onChange={(e) =>
                         setEditingProduct({ ...editingProduct, stockQty: Number(e.target.value) })
                       }
-                      className={`${inputCls} font-num disabled:opacity-65 disabled:bg-[#EFE7DA]`}
+                      className={`${inputCls} font-num disabled:opacity-65 disabled:bg-[#F3F1ED]`}
                     />
                   </div>
 
@@ -2716,12 +2761,12 @@ export default function AdminCommandCentre() {
                 </div>
 
                 {/* Image Upload & Path */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-[#FBF8F3] p-4 rounded-xl border border-[#DED3C2] text-[13px]">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-[#FAF9F7] p-4 rounded-xl border border-black/[0.07] text-[13px]">
                   <div className="md:col-span-2">
                     <img
                       src={editingProduct.image || "/images/hero-courtyard.png"}
                       alt="Preview"
-                      className="w-20 h-24 object-cover rounded border border-[#C9B9A3]"
+                      className="w-20 h-24 object-cover rounded border border-black/[0.10]"
                     />
                   </div>
                   <div className="md:col-span-6 space-y-2">
@@ -2747,7 +2792,7 @@ export default function AdminCommandCentre() {
                           key={preset}
                           type="button"
                           onClick={() => setEditingProduct({ ...editingProduct, image: preset })}
-                          className="px-2 py-1 rounded bg-[#F4EDE1] hover:bg-[#E8DEC9] text-[10px] font-bold text-[#2A1F18] border border-[#C9B9A3] cursor-pointer"
+                          className="px-2 py-1 rounded bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[10px] font-bold text-[#2A1F18] border border-black/[0.10] cursor-pointer"
                         >
                           {preset.replace("/images/", "")}
                         </button>
@@ -2758,7 +2803,7 @@ export default function AdminCommandCentre() {
                     <label className="block font-bold text-[#14110F] mb-1.5">
                       Or Upload New Photo From Computer
                     </label>
-                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] cursor-pointer font-bold">
+                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] cursor-pointer font-bold">
                       <Upload className="w-4 h-4 text-[#D8BF90]" />
                       {uploadingImg ? "Uploading…" : "Choose Image File"}
                       <input
@@ -2821,7 +2866,7 @@ export default function AdminCommandCentre() {
                   <button
                     type="button"
                     onClick={() => setEditingProduct(null)}
-                    className="px-4 py-2 rounded-lg bg-[#F4EDE1] text-[#2A1F18] border border-[#C9B9A3] text-[13px] font-bold cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-[#F3F1ED] text-[#2A1F18] border border-black/[0.10] text-[13px] font-bold cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -2834,7 +2879,7 @@ export default function AdminCommandCentre() {
                       );
                       if (ok) setEditingProduct(null);
                     }}
-                    className="px-5 py-2 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold cursor-pointer"
+                    className="px-5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold cursor-pointer"
                   >
                     Save Piece to Catalog
                   </button>
@@ -2856,17 +2901,17 @@ export default function AdminCommandCentre() {
                     <th className={`${thCls} text-right`}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {data.products.map((p) => {
                     const catObj = (data.categories || []).find((c) => c.id === p.category);
                     const isCollectionPiece = Boolean(p.collectionId && p.collectionId.trim() !== "");
                     return (
-                      <tr key={p.id} className="hover:bg-[#FBF8F3]">
+                      <tr key={p.id} className="admin-row-hover">
                         <td className="py-3.5 px-4 flex items-center gap-3">
                           <img
                             src={p.image}
                             alt={p.name}
-                            className="w-12 h-14 rounded object-cover shrink-0 border border-[#C9B9A3]"
+                            className="w-12 h-14 rounded object-cover shrink-0 border border-black/[0.10]"
                           />
                           <div>
                             <p className="font-bold text-[#14110F]">{p.name}</p>
@@ -2879,11 +2924,11 @@ export default function AdminCommandCentre() {
                         </td>
                         <td className="py-3.5 px-4">
                           {isCollectionPiece ? (
-                            <span className="inline-block px-2.5 py-1 rounded bg-[#2A1F18] text-white text-[11px] font-bold">
+                            <span className="inline-block px-2.5 py-1 rounded bg-[#181512] text-white text-[11px] font-bold">
                               <span className="font-num">{p.dropNumber || "Drop"}</span> · 1 of 1
                             </span>
                           ) : (
-                            <span className="inline-block px-2.5 py-1 rounded bg-[#EFE7DA] text-[#14110F] border border-[#B8A68E] text-[11px] font-bold">
+                            <span className="inline-block px-2.5 py-1 rounded bg-[#F3F1ED] text-[#14110F] border border-black/[0.12] text-[11px] font-bold">
                               Regular Store (Multi-Stock)
                             </span>
                           )}
@@ -2925,7 +2970,7 @@ export default function AdminCommandCentre() {
                           <button
                             type="button"
                             onClick={() => setEditingProduct(p)}
-                            className="px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold cursor-pointer"
                           >
                             Edit
                           </button>
@@ -2955,7 +3000,7 @@ export default function AdminCommandCentre() {
                                     : `Marked "${p.name}" as Sold Out`
                                 );
                               }}
-                              className="px-3 py-1.5 rounded-lg bg-[#F4EDE1] hover:bg-[#E8DEC9] text-[#6B4710] border border-[#C9B9A3] font-bold cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#6B4710] border border-black/[0.10] font-bold cursor-pointer"
                             >
                               {isCollectionPiece ? "Mark Acquired" : "Mark Sold Out"}
                             </button>
@@ -2989,7 +3034,7 @@ export default function AdminCommandCentre() {
         {activeTab === "customers" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className={`lg:col-span-7 ${cardCls} overflow-hidden`}>
-              <div className="p-4 border-b border-[#DED3C2] bg-[#FBF8F3] flex items-center justify-between">
+              <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7] flex items-center justify-between">
                 <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
                   Collector CRM Directory ({data.customers.length})
                 </h2>
@@ -3012,7 +3057,7 @@ export default function AdminCommandCentre() {
                       ])
                     )
                   }
-                  className="px-3.5 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export CRM CSV
@@ -3028,13 +3073,13 @@ export default function AdminCommandCentre() {
                     <th className={thCls}>Tags</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {data.customers.map((c) => (
                     <tr
                       key={c.phone}
                       onClick={() => openCustomerInspector(c)}
-                      className={`cursor-pointer hover:bg-[#FBF8F3] ${
-                        selectedCustomer?.phone === c.phone ? "bg-[#F4EDE1]" : ""
+                      className={`cursor-pointer admin-row-hover ${
+                        selectedCustomer?.phone === c.phone ? "bg-[#F3F1ED]" : ""
                       }`}
                     >
                       <td className="py-3.5 px-4">
@@ -3075,7 +3120,7 @@ export default function AdminCommandCentre() {
                 </p>
               ) : (
                 <>
-                  <div className="flex items-start justify-between border-b border-[#E6DDD0] pb-4">
+                  <div className="flex items-start justify-between border-b border-black/[0.07] pb-4">
                     <div>
                       <h3 className="text-lg font-bold text-[#1E1915]">{selectedCustomer.name}</h3>
                       <p className="font-num text-[13px] font-bold text-[#8C6528]">
@@ -3100,13 +3145,13 @@ export default function AdminCommandCentre() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-[13px]">
-                    <div className="p-3 rounded-lg bg-[#FBF8F3] border border-[#DED3C2]">
+                    <div className="p-3 rounded-lg bg-[#FAF9F7] border border-black/[0.07]">
                       <p className="text-[#1E1915] font-semibold">Lifetime Value</p>
                       <p className="font-num text-lg font-bold text-[#1B5E55]">
                         {formatBDT(selectedCustomer.totalSpentBDT)}
                       </p>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#FBF8F3] border border-[#DED3C2]">
+                    <div className="p-3 rounded-lg bg-[#FAF9F7] border border-black/[0.07]">
                       <p className="text-[#1E1915] font-semibold">Orders Placed</p>
                       <p className="font-num text-lg font-bold text-[#1E1915]">
                         {selectedCustomer.ordersCount} ({selectedCustomer.orderIds.join(", ")})
@@ -3163,7 +3208,7 @@ export default function AdminCommandCentre() {
                           `Updated CRM profile for ${selectedCustomer.name}`
                         )
                       }
-                      className="w-full py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
+                      className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
                     >
                       Save CRM Profile
                     </button>
@@ -3177,7 +3222,7 @@ export default function AdminCommandCentre() {
         {/* ───────────────────────── TAB 6: ABANDONED CHECKOUTS ───────────────────────── */}
         {activeTab === "abandoned" && (
           <div className={`${cardCls} overflow-hidden`}>
-            <div className="p-5 border-b border-[#DED3C2] bg-[#FBF8F3]">
+            <div className="p-5 border-b border-black/[0.07] bg-[#FAF9F7]">
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#1E1915]">
                 Abandoned Checkouts &amp; Drop-Off Recovery
               </h2>
@@ -3198,9 +3243,9 @@ export default function AdminCommandCentre() {
                     <th className={`${thCls} text-right`}>Recovery Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {data.abandonedCheckouts.map((a) => (
-                    <tr key={a.sessionId} className="hover:bg-[#FBF8F3]">
+                    <tr key={a.sessionId} className="admin-row-hover">
                       <td className="py-3.5 px-4">
                         <p className="font-bold text-[#1E1915]">
                           {a.customerName || `Visitor ${a.visitorId.slice(0, 10)}`}
@@ -3276,8 +3321,8 @@ export default function AdminCommandCentre() {
                     onClick={() => setLeadFilter(t.id)}
                     className={`px-3.5 py-1.5 rounded-lg text-[13px] font-bold cursor-pointer ${
                       leadFilter === t.id
-                        ? "bg-[#2A1F18] text-[#FBF8F3]"
-                        : "bg-[#F4EDE1] text-[#2A1F18] hover:bg-[#E8DEC9]"
+                        ? "bg-[#181512] text-[#FBF8F3]"
+                        : "bg-[#F3F1ED] text-[#2A1F18] hover:bg-[#E9E6E0]"
                     }`}
                   >
                     {t.label}
@@ -3303,7 +3348,7 @@ export default function AdminCommandCentre() {
                     ])
                   )
                 }
-                className="px-3.5 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export Leads CSV
@@ -3322,11 +3367,11 @@ export default function AdminCommandCentre() {
                     <th className={`${thCls} text-right`}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {data.leads
                     .filter((l) => leadFilter === "all" || l.type === leadFilter)
                     .map((l) => (
-                      <tr key={l.id} className="hover:bg-[#FBF8F3]">
+                      <tr key={l.id} className="admin-row-hover">
                         <td className="py-3.5 px-4 uppercase font-bold text-[#8C6528]">
                           {l.type.replace("_", " ")}
                         </td>
@@ -3351,7 +3396,7 @@ export default function AdminCommandCentre() {
                                 "Lead status updated"
                               )
                             }
-                            className="px-2.5 py-1 bg-white border border-[#C9B9A3] rounded text-[13px] uppercase font-bold text-[#1E1915]"
+                            className="px-2.5 py-1 bg-white border border-black/[0.10] rounded text-[13px] uppercase font-bold text-[#1E1915]"
                           >
                             <option value="new">new</option>
                             <option value="contacted">contacted</option>
@@ -3382,7 +3427,7 @@ export default function AdminCommandCentre() {
                                   );
                                 }
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#2A1F18] hover:bg-[#4B3527] text-white font-bold text-[12px] cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#181512] hover:bg-[#2F2721] text-white font-bold text-[12px] cursor-pointer"
                             >
                               Mark Sold to Buyer
                             </button>
@@ -3414,7 +3459,7 @@ export default function AdminCommandCentre() {
         {activeTab === "promos" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className={`lg:col-span-5 ${cardCls} p-5 space-y-4`}>
-              <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] border-b border-[#E6DDD0] pb-2.5">
+              <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] border-b border-black/[0.07] pb-2.5">
                 Create or Update Courtesy / Promo Code
               </h2>
               <div className="space-y-3 text-[13px]">
@@ -3509,7 +3554,7 @@ export default function AdminCommandCentre() {
                       setPromoLabelDraft("");
                     }
                   }}
-                  className="w-full py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
+                  className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
                 >
                   Save Promo Code (Live Immediately)
                 </button>
@@ -3528,9 +3573,9 @@ export default function AdminCommandCentre() {
                     <th className={`${thCls} text-right`}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {data.promoCodes.map((p) => (
-                    <tr key={p.code} className="hover:bg-[#FBF8F3]">
+                    <tr key={p.code} className="admin-row-hover">
                       <td className="py-3.5 px-4">
                         <p className="font-mono font-bold text-[#2A1F18] text-sm">{p.code}</p>
                         <p className="text-[#1E1915] font-medium">{p.label}</p>
@@ -3613,7 +3658,7 @@ export default function AdminCommandCentre() {
         {activeTab === "staff" && data.user.role === "owner" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className={`lg:col-span-5 ${cardCls} p-5 space-y-4`}>
-              <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] flex items-center gap-2 border-b border-[#E6DDD0] pb-2.5">
+              <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] flex items-center gap-2 border-b border-black/[0.07] pb-2.5">
                 <UserCheck className="w-4 h-4 text-[#8C6528]" />
                 Add or Update Staff Account
               </h2>
@@ -3687,7 +3732,7 @@ export default function AdminCommandCentre() {
                       setStaffPassword("");
                     }
                   }}
-                  className="w-full py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
+                  className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
                 >
                   Save Staff Account
                 </button>
@@ -3705,9 +3750,9 @@ export default function AdminCommandCentre() {
                     <th className={`${thCls} text-right`}>Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {data.staff.map((s) => (
-                    <tr key={s.id} className="hover:bg-[#FBF8F3]">
+                    <tr key={s.id} className="admin-row-hover">
                       <td className="py-3.5 px-4">
                         <p className="font-bold text-[#1E1915]">{s.name}</p>
                         <p className="text-[#1E1915] font-medium">{s.email}</p>
@@ -3775,7 +3820,7 @@ export default function AdminCommandCentre() {
 
           return (
             <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-4 border-b border-[#DED3C2] bg-[#FBF8F3] flex flex-wrap items-center justify-between gap-3">
+              <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7] flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#14110F]">
                     Full Admin Activity Audit Log ({filteredLogs.length} of {data.auditLogs.length} events)
@@ -3790,12 +3835,12 @@ export default function AdminCommandCentre() {
                     value={auditSearch}
                     onChange={(e) => setAuditSearch(e.target.value)}
                     placeholder="Search user, action, or details…"
-                    className="px-3 py-1.5 bg-white border border-[#B8A68E] rounded-lg text-[12.5px] text-[#14110F] focus:outline-none"
+                    className="px-3 py-1.5 bg-white border border-black/[0.12] rounded-lg text-[12.5px] text-[#14110F] focus:outline-none"
                   />
                   <select
                     value={auditActorFilter}
                     onChange={(e) => setAuditActorFilter(e.target.value)}
-                    className="px-3 py-1.5 bg-white border border-[#B8A68E] rounded-lg text-[12.5px] font-bold text-[#14110F] cursor-pointer"
+                    className="px-3 py-1.5 bg-white border border-black/[0.12] rounded-lg text-[12.5px] font-bold text-[#14110F] cursor-pointer"
                   >
                     <option value="all">All Staff Actors</option>
                     {uniqueActors.map((actor) => (
@@ -3822,7 +3867,7 @@ export default function AdminCommandCentre() {
                         ])
                       )
                     }
-                    className="px-3 py-1.5 rounded-lg bg-[#2A1F18] hover:bg-[#4B3527] text-white text-[12.5px] font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-[12.5px] font-bold inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5 text-[#D8BF90]" />
                     Export Full CSV
@@ -3839,9 +3884,9 @@ export default function AdminCommandCentre() {
                     <th className={thCls}>Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E6DDD0]">
+                <tbody className="divide-y divide-black/[0.06]">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-[#FBF8F3]">
+                    <tr key={log.id} className="admin-row-hover">
                       <td className="py-3 px-4 font-num text-[#14110F] font-medium whitespace-nowrap">
                         {new Date(log.created_at).toLocaleString("en-GB", {
                           day: "2-digit",
@@ -3870,12 +3915,17 @@ export default function AdminCommandCentre() {
             </div>
           );
         })()}
+        </div>
       </div>
 
-      {/* Toast Notification */}
+      {/* Sonner-Inspired Floating Toast */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 px-5 py-3 rounded-xl bg-[#2A1F18] text-[#FBF8F3] border border-[#B08A4F] text-[13px] font-bold shadow-2xl">
-          {toast}
+        <div
+          key={toast}
+          className="admin-toast fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#181512] text-[#FAF9F7] border border-white/10 text-[13px] font-normal shadow-[0_10px_30px_rgba(24,21,18,0.22)]"
+        >
+          <span className="h-2 w-2 rounded-full bg-[#34D399] shrink-0" />
+          <span>{toast}</span>
         </div>
       )}
     </div>
@@ -3894,36 +3944,38 @@ function KpiCard({
   accent: string;
 }) {
   return (
-    <div className="bg-white border border-[#D4C5B0] rounded-xl p-4 shadow-[0_2px_10px_rgba(30,25,21,0.05)]">
-      <p className="text-[13px] text-[#1E1915] font-bold uppercase tracking-wider">{label}</p>
-      <p className={`font-num text-2xl sm:text-3xl font-bold mt-1.5 ${accent}`}>{value}</p>
-      <p className="font-num text-[13px] text-[#2D2620] font-semibold mt-1">{sub}</p>
+    <div className="admin-kpi-card bg-white border border-black/[0.08] rounded-xl p-4 sm:p-5 shadow-[0_1px_2px_rgba(24,21,18,0.04)]">
+      <p className="text-[11.5px] text-[#635A52] font-medium tracking-[0.02em]">{label}</p>
+      <p className={`font-num text-2xl sm:text-[28px] font-semibold tracking-tight mt-2 leading-none ${accent}`}>
+        {value}
+      </p>
+      <p className="font-num text-[12px] text-[#7D7369] font-normal mt-2">{sub}</p>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    new: "bg-[#E6F3F0] text-[#11423B] border-[#8EC5B9]",
-    confirmed: "bg-[#FDF3E1] text-[#61410D] border-[#DEC07A]",
-    packed: "bg-[#EFE7DA] text-[#1E1915] border-[#B8A68E]",
-    shipped: "bg-[#E6EEF8] text-[#15325C] border-[#9EB8DE]",
-    delivered: "bg-[#E6F3F0] text-[#11423B] border-[#8EC5B9]",
-    cancelled: "bg-[#FCECEC] text-[#781E1E] border-[#DFA3A3]",
-    ready: "bg-[#E6F3F0] text-[#11423B] border-[#8EC5B9]",
-    limited: "bg-[#FDF3E1] text-[#61410D] border-[#DEC07A]",
-    waitlist: "bg-[#EFE7DA] text-[#1E1915] border-[#B8A68E]",
-    sold: "bg-[#FCECEC] text-[#781E1E] border-[#DFA3A3]",
-    sold_out: "bg-[#FCECEC] text-[#781E1E] border-[#DFA3A3]",
-    acquired: "bg-[#FDF3E1] text-[#61410D] border-[#DEC07A]",
-    hidden: "bg-[#E5DEC9] text-[#2D2620] border-[#B8A68E]",
+  const map: Record<string, { pill: string; dot: string }> = {
+    new: { pill: "bg-[#ECFDF5] text-[#065F46]", dot: "bg-[#10B981]" },
+    confirmed: { pill: "bg-[#FFFBEB] text-[#92400E]", dot: "bg-[#F59E0B]" },
+    packed: { pill: "bg-[#F3F1ED] text-[#3D3630]", dot: "bg-[#7D7369]" },
+    shipped: { pill: "bg-[#EFF6FF] text-[#1E40AF]", dot: "bg-[#3B82F6]" },
+    delivered: { pill: "bg-[#ECFDF5] text-[#065F46]", dot: "bg-[#059669]" },
+    cancelled: { pill: "bg-[#FEF2F2] text-[#991B1B]", dot: "bg-[#EF4444]" },
+    ready: { pill: "bg-[#ECFDF5] text-[#065F46]", dot: "bg-[#10B981]" },
+    limited: { pill: "bg-[#FFFBEB] text-[#92400E]", dot: "bg-[#F59E0B]" },
+    waitlist: { pill: "bg-[#F3F1ED] text-[#3D3630]", dot: "bg-[#7D7369]" },
+    sold: { pill: "bg-[#FEF2F2] text-[#991B1B]", dot: "bg-[#EF4444]" },
+    sold_out: { pill: "bg-[#FEF2F2] text-[#991B1B]", dot: "bg-[#EF4444]" },
+    acquired: { pill: "bg-[#FEF7E6] text-[#7A5417]", dot: "bg-[#B08A4F]" },
+    hidden: { pill: "bg-[#F3F1ED] text-[#635A52]", dot: "bg-[#A1978E]" },
   };
+  const style = map[status] || { pill: "bg-[#F3F1ED] text-[#3D3630]", dot: "bg-[#7D7369]" };
   return (
     <span
-      className={`px-2.5 py-1 rounded text-[11px] font-bold uppercase border ${
-        map[status] || "bg-[#EFE7DA] text-[#1E1915] border-[#B8A68E]"
-      }`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium capitalize ${style.pill}`}
     >
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
       {status.replace("_", " ")}
     </span>
   );
