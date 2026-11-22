@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Reveal } from "./Reveal";
 import { LAUNCH_ROADMAP } from "@/data/nokshaData";
+import { useStore } from "@/context/StoreContext";
 
 const HOUSE_TENETS = [
   {
@@ -24,13 +25,32 @@ const HOUSE_TENETS = [
 ];
 
 export function Atelier() {
+  const { siteContent } = useStore();
+  const tenets = [
+    {
+      no: "01",
+      title: siteContent.tenet_1_title || HOUSE_TENETS[0].title,
+      body: siteContent.tenet_1_body || HOUSE_TENETS[0].body,
+    },
+    {
+      no: "02",
+      title: siteContent.tenet_2_title || HOUSE_TENETS[1].title,
+      body: siteContent.tenet_2_body || HOUSE_TENETS[1].body,
+    },
+    {
+      no: "03",
+      title: siteContent.tenet_3_title || HOUSE_TENETS[2].title,
+      body: siteContent.tenet_3_body || HOUSE_TENETS[2].body,
+    },
+  ];
+
   return (
     <section id="atelier" className="bg-espresso text-paper">
       {/* Full-bleed craft image with a single quote */}
       <div className="relative h-[80svh] min-h-[520px] overflow-hidden">
         <Reveal variant="media" className="absolute inset-0">
           <img
-            src="/images/artisan-hands.jpg"
+            src={siteContent.atelier_image || "/images/artisan-hands.jpg"}
             alt="An artisan's hands stitching a Nakshi Kantha"
             className="h-full w-full object-cover"
           />
@@ -38,11 +58,11 @@ export function Atelier() {
         <div className="absolute inset-0 bg-gradient-to-t from-espresso via-espresso/30 to-transparent" />
         <div className="relative mx-auto flex h-full max-w-[1440px] items-end px-5 pb-16 sm:px-10 sm:pb-24">
           <Reveal className="max-w-3xl">
-            <p className="eyebrow text-gold-soft">The Atelier</p>
+            <p className="eyebrow text-gold-soft">{siteContent.atelier_eyebrow || "The Atelier"}</p>
             <blockquote className="font-display mt-6 text-4xl font-light leading-[1.15] sm:text-6xl">
-              “Pull the thread too tight and the story loses its softness.”
+              {siteContent.atelier_quote || "“Pull the thread too tight and the story loses its softness.”"}
             </blockquote>
-            <p className="eyebrow mt-6 text-paper/60">Hand-stitched in Bangladesh</p>
+            <p className="eyebrow mt-6 text-paper/60">{siteContent.atelier_caption || "Hand-stitched in Bangladesh"}</p>
           </Reveal>
         </div>
       </div>
@@ -50,7 +70,7 @@ export function Atelier() {
       {/* Three quiet house tenets — no regional/location breakdown */}
       <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-10 sm:py-18">
         <div className="grid border-t border-[var(--hairline-light)] md:grid-cols-3">
-          {HOUSE_TENETS.map((t, i) => (
+          {tenets.map((t, i) => (
             <Reveal
               key={t.no}
               delay={i * 80}
@@ -72,6 +92,7 @@ interface CircleProps {
 }
 
 export function FoundingCircle({ onJoined }: CircleProps) {
+  const { siteContent } = useStore();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -101,9 +122,9 @@ export function FoundingCircle({ onJoined }: CircleProps) {
       <div className="mx-auto max-w-[1440px]">
         {/* Release calendar */}
         <Reveal className="text-center">
-          <p className="eyebrow text-gold">Release calendar</p>
+          <p className="eyebrow text-gold">{siteContent.calendar_eyebrow || "Release calendar"}</p>
           <h2 className="font-display mt-5 text-5xl font-light sm:text-7xl">
-            Made in <em>small numbers.</em>
+            {siteContent.calendar_title || <>Made in <em>small numbers.</em></>}
           </h2>
         </Reveal>
 
@@ -132,14 +153,14 @@ export function FoundingCircle({ onJoined }: CircleProps) {
         {/* Invitation */}
         <div className="mt-16 grid items-center gap-16 lg:grid-cols-2">
           <Reveal>
-            <p className="eyebrow text-gold">The Founding Circle</p>
+            <p className="eyebrow text-gold">{siteContent.circle_eyebrow || "The Founding Circle"}</p>
             <h3 className="font-display mt-5 text-5xl font-light leading-[1.05] sm:text-6xl">
-              An invitation to <br />
-              <em>our first collectors.</em>
+              {siteContent.circle_title_line1 || "An invitation to"} <br />
+              <em>{siteContent.circle_title_line2 || "our first collectors."}</em>
             </h3>
             <p className="mt-8 max-w-md text-[0.95rem] leading-[1.8] text-ink-soft">
-              Private previews of each batch before release, early access to one-of-one Kanthas,
-              and a founding courtesy on your first acquisition.
+              {siteContent.circle_body ||
+                "Private previews of each batch before release, early access to one-of-one Kanthas, and a founding courtesy on your first acquisition."}
             </p>
           </Reveal>
 
@@ -182,28 +203,35 @@ export function FoundingCircle({ onJoined }: CircleProps) {
 }
 
 export function Footer() {
+  const { siteContent } = useStore();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
+
+  const waDisplay = siteContent.whatsapp_number
+    ? siteContent.whatsapp_number.replace(/^880/, "+880 ")
+    : "+880 1973-673217";
 
   return (
     <footer className="bg-espresso text-paper">
       <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-10">
         <div className="flex flex-col items-center text-center">
-          <img src="/brand/noksha-logo-light.png" alt="Noksha — Handcrafted in Bangladesh" className="h-16 w-auto sm:h-20" />
-          <p className="font-bengali mt-8 text-lg font-light text-paper/60">নকশা — বাংলার হাতের কাজ</p>
+          <img src={siteContent.brand_logo_light || "/brand/noksha-logo-light.png"} alt="Noksha — Handcrafted in Bangladesh" className="h-16 w-auto sm:h-20" />
+          <p className="font-bengali mt-8 text-lg font-light text-paper/60">
+            {siteContent.footer_tagline_bengali || "নকশা — বাংলার হাতের কাজ"}
+          </p>
         </div>
 
         <div className="mt-12 grid gap-12 border-t border-[var(--hairline-light)] py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="eyebrow !text-[0.6rem] text-gold-soft">Online Atelier</p>
-            <p className="mt-5 text-sm leading-[1.9] text-paper/70">
-              Dhaka, Bangladesh<br />Dispatched nationwide<br />Sat – Thu, 11 AM – 7 PM
+            <p className="eyebrow !text-[0.6rem] text-gold-soft">{siteContent.footer_atelier_title || "Online Atelier"}</p>
+            <p className="mt-5 text-sm leading-[1.9] text-paper/70 whitespace-pre-line">
+              {siteContent.footer_atelier_lines || "Dhaka, Bangladesh\nDispatched nationwide\nSat – Thu, 11 AM – 7 PM"}
             </p>
           </div>
           <div>
-            <p className="eyebrow !text-[0.6rem] text-gold-soft">Client care</p>
+            <p className="eyebrow !text-[0.6rem] text-gold-soft">{siteContent.footer_care_title || "Client care"}</p>
             <p className="mt-5 text-sm leading-[1.9] text-paper/70">
-              +880 1700-665742 (WhatsApp)<br />atelier@noksha.bd<br />Nationwide delivery
+              {waDisplay} (WhatsApp)<br />{siteContent.support_email || "atelier@noksha.bd"}<br />{siteContent.footer_delivery_note || "Nationwide delivery"}
             </p>
           </div>
           <div>
@@ -258,9 +286,11 @@ export function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-[var(--hairline-light)] py-8 text-paper/45 sm:flex-row">
           <p className="eyebrow !text-[0.58rem]">
-            © <span className="font-num">2026</span> Noksha · Handcrafted in Bangladesh
+            {siteContent.footer_copyright || "© 2026 Noksha · Handcrafted in Bangladesh"}
           </p>
-          <p className="eyebrow !text-[0.58rem]">Cash on delivery · bKash · Nagad · Cards</p>
+          <p className="eyebrow !text-[0.58rem]">
+            {siteContent.footer_payments_note || "Cash on delivery · UddoktaPay · bKash · Nagad · Cards"}
+          </p>
         </div>
       </div>
     </footer>

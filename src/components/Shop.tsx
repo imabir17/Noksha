@@ -45,7 +45,7 @@ interface ShopProps {
 }
 
 export default function Shop({ category, onCategory, onQuickAdd }: ShopProps) {
-  const { products: allProducts, categories } = useStore();
+  const { products: allProducts, categories, siteContent } = useStore();
 
   // Only show regular store products (outside any Exclusive Drop) in The Pieces / Categories
   const storeProducts = allProducts.filter(
@@ -90,17 +90,21 @@ export default function Shop({ category, onCategory, onQuickAdd }: ShopProps) {
       <div className="mx-auto max-w-[1440px]">
         <Reveal className="text-center">
           <p className="eyebrow text-gold">
-            Curated Store Categories
+            {siteContent.shop_eyebrow || "Curated Store Categories"}
           </p>
           <h2 className="font-display mt-5 text-5xl font-light sm:text-7xl">
-            The <em>pieces</em>
+            {siteContent.shop_title || <>The <em>pieces</em></>}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-ink-soft">
-            Browse our signature store categories with multi-piece availability. Looking for one-of-one collector pieces? Visit our{" "}
-            <Link href="/drops" className="text-ink underline underline-offset-4 hover:text-gold">
-              Exclusive Drops
-            </Link>
-            .
+            {siteContent.shop_subtitle || (
+              <>
+                Browse our signature store categories with multi-piece availability. Looking for one-of-one collector pieces? Visit our{" "}
+                <Link href="/drops" className="text-ink underline underline-offset-4 hover:text-gold">
+                  Exclusive Drops
+                </Link>
+                .
+              </>
+            )}
           </p>
         </Reveal>
 

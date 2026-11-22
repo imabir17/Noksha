@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { DropStatus, formatBDT, PillarId, ProductStatus } from "@/data/nokshaData";
 import { DbCategory, DbCollection, DbProduct } from "@/lib/db";
+import SiteContentEditor from "./SiteContentEditor";
 import {
   AdminCustomer,
   AdminOrder,
@@ -3589,159 +3590,19 @@ export default function AdminCommandCentre() {
 
         {/* ───────────────────────── TAB 9: SITE CONTENT EDITOR ───────────────────────── */}
         {activeTab === "content" && (
-          <div className={`${cardCls} p-6 space-y-5 max-w-4xl`}>
-            <div className="border-b border-[#E6DDD0] pb-3">
-              <h2 className="text-base font-bold text-[#1E1915]">
-                Live Storefront Copy &amp; Operational Settings
-              </h2>
-              <p className="text-[13px] text-[#1E1915] font-medium">
-                Edit hero copy, top announcement banner, manifesto text, and WhatsApp/bKash numbers.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
-              <div className="md:col-span-2 flex items-center gap-3 p-3.5 rounded-lg bg-[#FBF8F3] border border-[#DED3C2]">
-                <input
-                  type="checkbox"
-                  checked={contentDraft.announcement_enabled === "true"}
-                  onChange={(e) =>
-                    setContentDraft({
-                      ...contentDraft,
-                      announcement_enabled: e.target.checked ? "true" : "false",
-                    })
-                  }
-                  className="accent-[#2A1F18] w-4 h-4"
-                />
-                <span className="font-bold text-[#1E1915]">
-                  Show Top Announcement Banner on Storefront
-                </span>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block font-bold text-[#2A1F18] mb-1">
-                  Announcement Banner Text
-                </label>
-                <input
-                  type="text"
-                  value={contentDraft.announcement_text || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, announcement_text: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#2A1F18] mb-1">Hero Eyebrow</label>
-                <input
-                  type="text"
-                  value={contentDraft.hero_eyebrow || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, hero_eyebrow: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-[#2A1F18] mb-1">Hero Bengali Tagline</label>
-                <input
-                  type="text"
-                  value={contentDraft.hero_bengali || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, hero_bengali: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-[#2A1F18] mb-1">Hero Headline Line 1</label>
-                <input
-                  type="text"
-                  value={contentDraft.hero_title_line1 || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, hero_title_line1: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-[#2A1F18] mb-1">
-                  Hero Headline Line 2 (Italic)
-                </label>
-                <input
-                  type="text"
-                  value={contentDraft.hero_title_line2 || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, hero_title_line2: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block font-bold text-[#2A1F18] mb-1">Manifesto Eyebrow</label>
-                <input
-                  type="text"
-                  value={contentDraft.manifesto_eyebrow || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, manifesto_eyebrow: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block font-bold text-[#2A1F18] mb-1">Manifesto Statement</label>
-                <textarea
-                  rows={3}
-                  value={contentDraft.manifesto_body || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, manifesto_body: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#2A1F18] mb-1">
-                  WhatsApp Client Care Number
-                </label>
-                <input
-                  type="text"
-                  value={contentDraft.whatsapp_number || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, whatsapp_number: e.target.value })
-                  }
-                  className={`${inputCls} font-num`}
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-[#2A1F18] mb-1">
-                  bKash / Nagad Merchant Number
-                </label>
-                <input
-                  type="text"
-                  value={contentDraft.merchant_number || ""}
-                  onChange={(e) =>
-                    setContentDraft({ ...contentDraft, merchant_number: e.target.value })
-                  }
-                  className={`${inputCls} font-num`}
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                postAction(
-                  { action: "save_content", content: contentDraft },
-                  "Storefront content updated!"
-                )
-              }
-              className="px-6 py-2.5 bg-[#2A1F18] hover:bg-[#4B3527] text-[#FBF8F3] font-bold text-[13px] rounded-lg cursor-pointer"
-            >
-              Publish Storefront Content
-            </button>
-          </div>
+          <SiteContentEditor
+            contentDraft={contentDraft}
+            setContentDraft={setContentDraft}
+            onPublish={() =>
+              postAction(
+                { action: "save_content", content: contentDraft },
+                "All site content & media published!"
+              )
+            }
+            notify={notify}
+            inputCls={inputCls}
+            cardCls={cardCls}
+          />
         )}
 
         {/* ───────────────────────── TAB 10: STAFF & ROLES (OWNER ONLY) ───────────────────────── */}

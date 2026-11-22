@@ -14,7 +14,7 @@ export function Manifesto() {
     <section className="kantha-bg grain relative bg-paper px-5 py-16 sm:px-10 sm:py-24">
       <div className="mx-auto max-w-4xl text-center">
         <Reveal>
-          <img src="/brand/noksha-mark.png" alt="" className="mx-auto h-14 w-14" />
+          <img src={siteContent.brand_mark || "/brand/noksha-mark.png"} alt="" className="mx-auto h-14 w-14" />
         </Reveal>
         <Reveal delay={80}>
           <p className="eyebrow mt-10 text-gold">
@@ -40,9 +40,9 @@ export function Manifesto() {
             <div className="kantha-rule mb-8" />
             <div className="grid grid-cols-3">
               {[
-                [String(categories.length || 3), "Craft categories"],
-                ["280", "Hours in one kantha"],
-                ["100%", "Made in Bangladesh"],
+                [siteContent.manifesto_stat_1_num || String(categories.length || 3), siteContent.manifesto_stat_1_label || "Craft categories"],
+                [siteContent.manifesto_stat_2_num || "280", siteContent.manifesto_stat_2_label || "Hours in one kantha"],
+                [siteContent.manifesto_stat_3_num || "100%", siteContent.manifesto_stat_3_label || "Made in Bangladesh"],
               ].map(([n, l]) => (
                 <div key={l}>
                   <p className="font-display text-3xl font-light tabular-nums sm:text-4xl">{n}</p>
@@ -58,7 +58,7 @@ export function Manifesto() {
 }
 
 export function Collections({ onExplore }: { onExplore?: (id: CategoryFilter) => void }) {
-  const { categories } = useStore();
+  const { categories, siteContent } = useStore();
 
   // Merge rich visual defaults from FOUNDING_PILLARS with dynamic categories from DB
   const displayCategories = categories.map((cat, idx) => {
@@ -82,13 +82,13 @@ export function Collections({ onExplore }: { onExplore?: (id: CategoryFilter) =>
       <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-10 sm:pt-22">
         <Reveal className="flex flex-col items-start justify-between gap-6 border-b border-[var(--hairline)] pb-10 md:flex-row md:items-end">
           <div>
-            <p className="eyebrow text-gold">The Categories</p>
+            <p className="eyebrow text-gold">{siteContent.categories_eyebrow || "The Categories"}</p>
             <h2 className="font-display mt-5 text-5xl font-light leading-none sm:text-7xl">
-              Three crafts, <em>one house.</em>
+              {siteContent.categories_title || <>Three crafts, <em>one house.</em></>}
             </h2>
           </div>
           <p className="max-w-sm text-[0.95rem] leading-relaxed text-ink-soft">
-            Explore our signature craft categories—available as multi-piece store editions or as one-of-one collector pieces in our numbered Drops.
+            {siteContent.categories_subtitle || "Explore our signature craft categories—available as multi-piece store editions or as one-of-one collector pieces in our numbered Drops."}
           </p>
         </Reveal>
       </div>

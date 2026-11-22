@@ -955,6 +955,9 @@ export async function POST(req: NextRequest) {
         tx();
         logAudit(user, "save_content", "site_content", "global", `Updated site content settings`);
         revalidatePath("/");
+        revalidatePath("/about");
+        revalidatePath("/drops");
+        revalidatePath("/shop");
       }
       return NextResponse.json({ ok: true });
     }

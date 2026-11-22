@@ -18,7 +18,7 @@ export default function DropsView({
   initialCollections,
   initialProducts,
 }: DropsViewProps) {
-  const { collections, products, categories } = useStore();
+  const { collections, products, categories, siteContent } = useStore();
   const activeCollections = collections.length > 0 ? collections : initialCollections;
   const activeProducts = products.length > 0 ? products : initialProducts;
 
@@ -32,7 +32,7 @@ export default function DropsView({
       {/* 1. Full-Bleed Hero Banner */}
       <section className="relative h-[62svh] min-h-[440px] w-full overflow-hidden bg-espresso text-paper">
         <img
-          src="/images/hero-courtyard.png"
+          src={siteContent.drops_hero_image || "/images/hero-courtyard.png"}
           alt="Noksha Exclusive Collector Drops"
           className="hero-image absolute inset-0 h-full w-full object-cover opacity-80"
         />
@@ -44,25 +44,26 @@ export default function DropsView({
               className="hero-line eyebrow text-gold-soft"
               style={{ "--d": "120ms" } as React.CSSProperties}
             >
-              Exclusive Collector Releases · One of One
+              {siteContent.drops_hero_eyebrow || "Exclusive Collector Releases · One of One"}
             </p>
             <h1
               className="hero-line font-display mt-4 text-5xl font-light leading-[1.02] sm:text-7xl lg:text-[5.5rem]"
               style={{ "--d": "220ms" } as React.CSSProperties}
             >
-              The <em>Drops</em>
+              {siteContent.drops_hero_title || <>The <em>Drops</em></>}
             </h1>
             <p
               className="hero-line font-bengali mt-4 text-2xl font-light text-gold-soft"
               style={{ "--d": "320ms" } as React.CSSProperties}
             >
-              নকশা সম্ভার — একমেবাদ্বিতীয়ম্
+              {siteContent.drops_hero_bengali || "নকশা সম্ভার — একমেবাদ্বিতীয়ম্"}
             </p>
             <p
               className="hero-line mt-5 max-w-xl text-[0.98rem] leading-[1.75] text-paper/85"
               style={{ "--d": "420ms" } as React.CSSProperties}
             >
-              Each Drop curates singular one-of-one works across Light Shades, Nakshi Kanthas, and Wooden Jewelry Boxes. Once a piece is acquired and delivered, it is permanently inscribed with its collector&apos;s name and never repeated.
+              {siteContent.drops_hero_description ||
+                "Each Drop curates singular one-of-one works across Light Shades, Nakshi Kanthas, and Wooden Jewelry Boxes. Once a piece is acquired and delivered, it is permanently inscribed with its collector's name and never repeated."}
             </p>
           </div>
         </div>

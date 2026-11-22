@@ -8,6 +8,8 @@ interface HeaderProps {
   bagCount: number;
   onOpenBag: () => void;
   transparentHero?: boolean;
+  logoLight?: string;
+  logoDark?: string;
 }
 
 const NAV = [
@@ -18,7 +20,13 @@ const NAV = [
   { href: "/track-order", label: "Track Order" },
 ];
 
-export default function Header({ bagCount, onOpenBag, transparentHero = true }: HeaderProps) {
+export default function Header({
+  bagCount,
+  onOpenBag,
+  transparentHero = true,
+  logoLight = "/brand/noksha-logo-light.png",
+  logoDark = "/brand/noksha-logo.png",
+}: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -65,13 +73,13 @@ export default function Header({ bagCount, onOpenBag, transparentHero = true }: 
           {/* Centre: logo (light version over the hero, dark when solid) */}
           <Link href="/" className="logo-swap relative block h-11 w-[176px] sm:h-14 sm:w-[228px]" aria-label="Noksha — home">
             <img
-              src="/brand/noksha-logo-light.png"
+              src={logoLight}
               alt=""
               className="absolute inset-0 h-full w-full object-contain"
               style={{ opacity: solid ? 0 : 1 }}
             />
             <img
-              src="/brand/noksha-logo.png"
+              src={logoDark}
               alt="Noksha — Handcrafted in Bangladesh"
               className="absolute inset-0 h-full w-full object-contain"
               style={{ opacity: solid ? 1 : 0 }}

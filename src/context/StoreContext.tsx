@@ -421,6 +421,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         <Header
           bagCount={bagCount}
           onOpenBag={openBag}
+          logoLight={siteContent.brand_logo_light || "/brand/noksha-logo-light.png"}
+          logoDark={siteContent.brand_logo_dark || "/brand/noksha-logo.png"}
           transparentHero={
             pathname === "/" ||
             pathname === "/about" ||

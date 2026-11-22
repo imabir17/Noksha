@@ -5,15 +5,21 @@ import { useStore } from "@/context/StoreContext";
 
 export default function Hero() {
   const { siteContent } = useStore();
+  const heroImage = siteContent.hero_image || "/images/hero-courtyard.png";
   const eyebrow = siteContent.hero_eyebrow || "The Inaugural Collection";
   const line1 = siteContent.hero_title_line1 || "Heirlooms for the";
   const line2 = siteContent.hero_title_line2 || "Bengali home.";
   const bengali = siteContent.hero_bengali || "আলো, সুতো ও কাঠের কাব্য";
+  const ctaPrimary = siteContent.hero_cta_primary || "Discover the pieces";
+  const ctaSecondary = siteContent.hero_cta_secondary || "Our story";
+  const index1 = siteContent.hero_index_1 || "I.  Alo — Light";
+  const index2 = siteContent.hero_index_2 || "II.  Kantha — Thread";
+  const index3 = siteContent.hero_index_3 || "III.  Shindook — Timber";
 
   return (
     <section id="top" className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-espresso text-paper">
       <img
-        src="/images/hero-courtyard.png"
+        src={heroImage}
         alt="A sunlit Bengali living room with a woven bamboo pendant, a hand-stitched Nakshi Kantha and a brass-inlaid teak jewellery box"
         className="hero-image absolute inset-0 h-full w-full object-cover"
       />
@@ -44,10 +50,10 @@ export default function Hero() {
             style={{ "--d": "600ms" } as React.CSSProperties}
           >
             <a href="#shop" className="press btn-ghost on-dark">
-              Discover the pieces
+              {ctaPrimary}
             </a>
             <a href="/about" className="link-draw eyebrow !tracking-[0.24em] text-paper/90">
-              Our story <span className="arrow">→</span>
+              {ctaSecondary} <span className="arrow">→</span>
             </a>
           </div>
         </div>
@@ -58,9 +64,9 @@ export default function Hero() {
           style={{ "--d": "800ms" } as React.CSSProperties}
         >
           <ul className="space-y-2 font-display text-lg font-light italic text-paper/75">
-            <li>I. &nbsp;Alo — Light</li>
-            <li>II. &nbsp;Kantha — Thread</li>
-            <li>III. &nbsp;Shindook — Timber</li>
+            <li>{index1}</li>
+            <li>{index2}</li>
+            <li>{index3}</li>
           </ul>
         </div>
 

@@ -22,7 +22,7 @@ export default function ShopPageView({
   initialProducts,
   initialCategories,
 }: ShopPageViewProps) {
-  const { products, categories, addToBag } = useStore();
+  const { products, categories, addToBag, siteContent } = useStore();
   const allProducts = products.length > 0 ? products : initialProducts;
   const allCategories = categories.length > 0 ? categories : initialCategories;
 
@@ -111,12 +111,15 @@ export default function ShopPageView({
           {/* Editorial Header */}
           <div className="border-b border-[var(--hairline)] pb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              <p className="eyebrow text-gold">Complete Noksha Archive &amp; Store</p>
+              <p className="eyebrow text-gold">
+                {siteContent.shop_page_eyebrow || "Complete Noksha Archive & Store"}
+              </p>
               <h1 className="font-display mt-4 text-5xl font-light leading-none sm:text-7xl">
-                Shop <em>All Pieces</em>
+                {siteContent.shop_page_title || <>Shop <em>All Pieces</em></>}
               </h1>
               <p className="mt-4 max-w-2xl text-[0.95rem] leading-relaxed text-ink-soft">
-                Every creation from our atelier in one place—browse multi-stock signature store pieces alongside singular one-of-one collector works from our numbered Drops.
+                {siteContent.shop_page_description ||
+                  "Every creation from our atelier in one place—browse multi-stock signature store pieces alongside singular one-of-one collector works from our numbered Drops."}
               </p>
             </div>
             <p className="eyebrow !text-[0.62rem] text-mute shrink-0">
