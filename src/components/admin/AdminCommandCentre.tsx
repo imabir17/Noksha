@@ -132,6 +132,16 @@ export default function AdminCommandCentre() {
   const [orderFilter, setOrderFilter] = useState("all");
   const [orderSearch, setOrderSearch] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [printingSlipOrder, setPrintingSlipOrder] = useState<AdminOrder | null>(null);
+
+  const openPrintSlip = (o: AdminOrder) => {
+    setPrintingSlipOrder(o);
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.print();
+      }
+    }, 120);
+  };
   const [orderStatusDraft, setOrderStatusDraft] = useState("");
   const [paymentStatusDraft, setPaymentStatusDraft] = useState("");
   const [courierDraft, setCourierDraft] = useState("");
@@ -601,7 +611,164 @@ export default function AdminCommandCentre() {
   const navItems = visibleGroups.flatMap((g) => g.items);
 
   return (
-    <div className="admin-ui min-h-screen lg:h-screen lg:overflow-hidden bg-[#FAF9F7] text-[#181512] flex flex-col lg:flex-row">
+    <>
+    {printingSlipOrder && (
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 sm:p-8 print:static print:bg-white print:p-0">
+        <div className="admin-surface-enter max-w-3xl mx-auto bg-white text-[#181512] border border-black/[0.12] rounded-xl p-8 sm:p-12 shadow-2xl print:border-0 print:shadow-none print:rounded-none">
+          <div className="mb-6 flex items-center justify-between border-b border-black/[0.08] pb-4 print:hidden">
+            <button
+              type="button"
+              onClick={() => setPrintingSlipOrder(null)}
+              className="admin-press px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#181512] text-xs font-medium cursor-pointer"
+            >
+              ← Back to Orders
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="admin-press px-4 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5 text-[#D8BF90]" />
+                Print / Save as PDF ({printingSlipOrder.id})
+              </button>
+            </div>
+          </div>
+
+          {/* Slip Header */}
+          <div className="flex items-start justify-between border-b border-neutral-300 pb-6">
+            <div>
+              <img
+                src="/brand/noksha-logo.png"
+                alt="NOKSHA"
+                className="h-12 w-auto object-contain"
+              />
+              <p className="text-xs text-neutral-500 mt-2">
+                Noksha Online Atelier · Dhaka, Bangladesh · +880 1973-673217
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-widest text-neutral-500 font-semibold">
+                Invoice &amp; Packing Slip
+              </p>
+              <p className="font-num text-2xl font-bold mt-1">{printingSlipOrder.id}</p>
+              <p className="font-num text-xs text-neutral-500 mt-1">
+                Date: {new Date(printingSlipOrder.createdAt).toLocaleDateString("en-GB")}
+              </p>
+            </div>
+          </div>
+
+          {/* Recipient & Payment Meta */}
+          <div className="grid grid-cols-2 gap-8 py-6 border-b border-neutral-300 text-sm">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
+                Deliver To
+              </p>
+              <p className="font-semibold text-base mt-1">{printingSlipOrder.customerName}</p>
+              <p className="font-num text-neutral-700">{printingSlipOrder.customerPhone}</p>
+              {printingSlipOrder.customerEmail && (
+                <p className="text-neutral-600">{printingSlipOrder.customerEmail}</p>
+              )}
+              <p className="text-neutral-700 mt-1">
+                {printingSlipOrder.address}, {printingSlipOrder.district}
+              </p>
+              {printingSlipOrder.notes && (
+                <p className="text-xs text-neutral-500 mt-1">Note: {printingSlipOrder.notes}</p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
+                Payment &amp; Dispatch
+              </p>
+              <p className="mt-1 font-medium uppercase">
+                Method: {printingSlipOrder.paymentMethod} ({printingSlipOrder.paymentStatus})
+              </p>
+              {printingSlipOrder.trxId && (
+                <p className="font-num text-xs text-neutral-600">TrxID: {printingSlipOrder.trxId}</p>
+              )}
+              <p className="text-xs text-neutral-600 mt-1 uppercase">
+                Order Status: {printingSlipOrder.status}
+              </p>
+              {printingSlipOrder.courierName && (
+                <p className="text-xs text-neutral-700 mt-1">
+                  Courier: {printingSlipOrder.courierName}{" "}
+                  {printingSlipOrder.trackingCode ? `(${printingSlipOrder.trackingCode})` : ""}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Line Items */}
+          <table className="w-full text-sm my-6 border-collapse">
+            <thead>
+              <tr className="border-b border-neutral-300 text-left text-xs uppercase tracking-wider text-neutral-500">
+                <th className="py-2.5">Piece</th>
+                <th className="py-2.5">Finish</th>
+                <th className="py-2.5 text-center">Qty</th>
+                <th className="py-2.5 text-right">Unit Price</th>
+                <th className="py-2.5 text-right">Line Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-200">
+              {printingSlipOrder.items.map((item, idx) => (
+                <tr key={idx}>
+                  <td className="py-3 font-medium">{item.name}</td>
+                  <td className="py-3 text-neutral-600">{item.selectedColor}</td>
+                  <td className="py-3 text-center font-num">{item.quantity}</td>
+                  <td className="py-3 text-right font-num">{formatBDT(item.priceBDT)}</td>
+                  <td className="py-3 text-right font-num font-semibold">
+                    {formatBDT(item.priceBDT * item.quantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Totals */}
+          <div className="flex justify-end border-t border-neutral-300 pt-4">
+            <div className="w-64 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-neutral-600">Subtotal</span>
+                <span className="font-num">{formatBDT(printingSlipOrder.subtotalBDT)}</span>
+              </div>
+              {printingSlipOrder.discountBDT > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span>Courtesy ({printingSlipOrder.promoCode || "Discount"})</span>
+                  <span className="font-num">− {formatBDT(printingSlipOrder.discountBDT)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-neutral-600">Delivery</span>
+                <span className="font-num">
+                  {printingSlipOrder.deliveryBDT === 0
+                    ? "Complimentary"
+                    : formatBDT(printingSlipOrder.deliveryBDT)}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-neutral-300 pt-2 text-base font-bold">
+                <span>Total (BDT)</span>
+                <span className="font-num">{formatBDT(printingSlipOrder.totalBDT)}</span>
+              </div>
+            </div>
+          </div>
+
+          {printingSlipOrder.giftNote && (
+            <div className="mt-6 p-4 bg-neutral-50 border border-neutral-200 text-xs">
+              <span className="font-semibold uppercase tracking-wider text-neutral-600">
+                Calligraphy Card Message:
+              </span>{" "}
+              <span className="italic">“{printingSlipOrder.giftNote}”</span>
+            </div>
+          )}
+
+          <div className="mt-10 pt-6 border-t border-neutral-200 flex items-center justify-between text-xs text-neutral-500">
+            <span>Wrapped in unbleached kora muslin · Handcrafted in Bangladesh</span>
+            <span>Thank you for collecting Noksha (নকশা)</span>
+          </div>
+        </div>
+      </div>
+    )}
+    <div className={`admin-ui min-h-screen lg:h-screen lg:overflow-hidden bg-[#FAF9F7] text-[#181512] flex flex-col lg:flex-row ${printingSlipOrder ? "print:hidden" : ""}`}>
       {/* Left Studio Sidebar — Fixed / Non-Scrolling on Desktop, Regular Weight */}
       <aside className="w-full lg:w-[244px] lg:h-screen lg:overflow-hidden bg-[#F3F1ED] border-b lg:border-b-0 lg:border-r border-black/[0.07] shrink-0 flex flex-col justify-between select-none">
         <div>
@@ -1424,15 +1591,18 @@ export default function AdminCommandCentre() {
                           <StatusBadge status={o.status} />
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <Link
-                            href={`/admin/invoice/${o.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] font-bold"
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPrintSlip(o);
+                            }}
+                            className="admin-press inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] font-medium cursor-pointer"
                             title="Print Invoice / Packing Slip"
                           >
                             <Printer className="w-3.5 h-3.5" />
                             Slip
-                          </Link>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1476,13 +1646,14 @@ export default function AdminCommandCentre() {
                           <MessageCircle className="w-3.5 h-3.5" />
                           WhatsApp
                         </a>
-                        <Link
-                          href={`/admin/invoice/${selectedOrder.id}`}
-                          className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] text-[13px] font-bold flex items-center gap-1"
+                        <button
+                          type="button"
+                          onClick={() => openPrintSlip(selectedOrder)}
+                          className="admin-press px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] text-[13px] font-medium flex items-center gap-1 cursor-pointer"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           Print Slip
-                        </Link>
+                        </button>
                       </div>
                     </div>
 
@@ -3955,6 +4126,7 @@ export default function AdminCommandCentre() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

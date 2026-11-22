@@ -76,7 +76,7 @@ export default async function InvoicePage({
               className="h-12 w-auto object-contain"
             />
             <p className="text-xs text-neutral-500 mt-2">
-              Noksha Online Atelier · Dhaka, Bangladesh · +880 1700-665742
+              Noksha Online Atelier · Dhaka, Bangladesh · +880 1973-673217
             </p>
           </div>
           <div className="text-right">

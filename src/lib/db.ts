@@ -3,7 +3,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { DropStatus, NOKSHA_PRODUCTS, NokshaProduct, PillarId, ProductStatus } from "@/data/nokshaData";
-import { hashPassword, SessionUser, StaffRole } from "./auth";
+import { hashPassword, SessionUser, StaffRole, verifySignedSessionToken } from "./auth";
 import { downloadDbFromSupabaseSync, getSupabaseConfig, uploadDbBufferToSupabase } from "./supabase";
 
 function resolveDataDir(): string {
@@ -1079,6 +1079,9 @@ export function getAllPromoCodes(onlyActive = false): DbPromoCode[] {
 
 export function getSessionUser(token: string | null): SessionUser | null {
   if (!token) return null;
+  const signedUser = verifySignedSessionToken(token);
+  if (signedUser) return signedUser;
+
   const db = getDb();
   const row = db
     .prepare(

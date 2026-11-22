@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
-  generateSessionToken,
+  createSignedSessionToken,
   getSessionTokenFromCookies,
   SESSION_COOKIE,
   verifyPassword,
 } from "@/lib/auth";
-import { getDb, getSessionUser, logAudit } from "@/lib/db";
+import { getDb, getSessionUser, logAudit, syncDbToSupabase } from "@/lib/db";
 
 export async function GET() {
   const token = await getSessionTokenFromCookies();
@@ -32,7 +32,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    const token = generateSessionToken();
+    const token = createSignedSessionToken({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+    });
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 86400000).toISOString();
 
@@ -45,6 +50,7 @@ export async function POST(req: NextRequest) {
     db.prepare("UPDATE staff_users SET last_login_at = ? WHERE id = ?").run(now.toISOString(), row.id);
 
     logAudit({ email: row.email, role: row.role }, "staff_login", "staff_user", String(row.id), `${row.name} signed in`);
+    await syncDbToSupabase();
 
     const store = await cookies();
     store.set(SESSION_COOKIE, token, {
