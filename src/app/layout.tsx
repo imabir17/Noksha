@@ -26,9 +26,19 @@ const notoBengali = Noto_Serif_Bengali({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://itsnoksha.com"),
   title: "NOKSHA — Handcrafted in Bangladesh",
   description:
     "Noksha (নকশা) is a Bangladeshi house of heirloom craft: woven bamboo and Jamdani light, hand-stitched Nakshi Kanthas, and brass-inlaid Chittagong teak jewellery boxes.",
+  openGraph: {
+    title: "NOKSHA — Handcrafted in Bangladesh",
+    description:
+      "Noksha (নকশা) is a Bangladeshi house of heirloom craft: woven bamboo and Jamdani light, hand-stitched Nakshi Kanthas, and brass-inlaid Chittagong teak jewellery boxes.",
+    url: "https://itsnoksha.com",
+    siteName: "NOKSHA",
+    locale: "en_US",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
