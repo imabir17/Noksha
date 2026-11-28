@@ -4,9 +4,14 @@ const SANDBOX_BASE_URL = "https://sandbox.uddoktapay.com";
 const SANDBOX_API_KEY = "982d381360a69d419689740d9f2e26ce36fb7a50";
 
 export function getUddoktaPayConfig() {
-  const baseUrl = (process.env.UDDOKTAPAY_BASE_URL || SANDBOX_BASE_URL).replace(/\/+$/, "");
-  const apiKey = process.env.UDDOKTAPAY_API_KEY || SANDBOX_API_KEY;
-  return { baseUrl, apiKey, isSandbox: baseUrl.includes("sandbox") };
+  const rawBase = (process.env.UDDOKTAPAY_BASE_URL || SANDBOX_BASE_URL)
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/checkout-v2$/i, "")
+    .replace(/\/api\/checkout$/i, "")
+    .replace(/\/api$/i, "");
+  const apiKey = (process.env.UDDOKTAPAY_API_KEY || SANDBOX_API_KEY).trim();
+  return { baseUrl: rawBase, apiKey, isSandbox: rawBase.includes("sandbox") };
 }
 
 export async function POST(req: NextRequest) {

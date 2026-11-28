@@ -17,7 +17,7 @@ import {
 } from "@/lib/pricing";
 
 const PAYMENTS: { id: PaymentMethod; title: string; note: string }[] = [
-  { id: "uddoktapay", title: "Pay Online (UddoktaPay)", note: "bKash, Nagad, Rocket, Upay or Card — Sandbox test gateway ready." },
+  { id: "uddoktapay", title: "Pay Online (bKash / Nagad / Card)", note: "Instant online payment via bKash, Nagad, Rocket, Upay or Card." },
   { id: "cod", title: "Cash on delivery", note: "Pay in taka when your piece arrives and you have inspected it." },
   { id: "whatsapp", title: "Arrange with client care", note: "We will confirm payment and delivery with you on WhatsApp." },
 ];
