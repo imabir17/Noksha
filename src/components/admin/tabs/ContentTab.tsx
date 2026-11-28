@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import SiteContentEditor from "../SiteContentEditor";
 import { useAdmin } from "../hooks/useAdminData";
-import { legacyCardCls, legacyInputCls } from "./_legacyShared";
 
 export default function ContentTab() {
   const { data, postAction, notify } = useAdmin();
@@ -18,16 +17,16 @@ export default function ContentTab() {
   return (
     <SiteContentEditor
       contentDraft={contentDraft}
+      savedContent={data.siteContent || {}}
       setContentDraft={setContentDraft}
+      onDiscard={() => setContentDraft(data.siteContent || {})}
       onPublish={() =>
         postAction(
           { action: "save_content", content: contentDraft },
-          "All site content & media published!"
+          "Published site content & media"
         )
       }
       notify={(msg) => notify(msg)}
-      inputCls={legacyInputCls}
-      cardCls={legacyCardCls}
     />
   );
 }
