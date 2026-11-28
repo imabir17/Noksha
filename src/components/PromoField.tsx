@@ -64,7 +64,7 @@ export default function PromoField({ promo, onPromo, promoRules }: PromoFieldPro
         <button
           type="button"
           onClick={apply}
-          className="press eyebrow shrink-0 pb-3 cursor-pointer"
+          className="press eyebrow shrink-0 pb-3 text-ink font-semibold cursor-pointer"
         >
           Apply
         </button>

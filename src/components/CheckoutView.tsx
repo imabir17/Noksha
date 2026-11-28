@@ -358,15 +358,15 @@ export default function CheckoutView() {
     <>
       <main className="kantha-bg bg-paper pt-24 sm:pt-30">
         <div className="mx-auto max-w-[1280px] px-5 pb-20 sm:px-10">
-          <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-6">
-            <Link href="/#shop" className="link-draw eyebrow !tracking-[0.24em] text-ink-soft">
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.25} />
+          <div className="flex items-center justify-between border-b border-ink/20 pb-6">
+            <Link href="/#shop" className="link-draw eyebrow !text-[0.72rem] !tracking-[0.22em] text-ink font-semibold">
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
               Continue browsing
             </Link>
-            <p className="eyebrow !text-[0.6rem] text-mute">Secure checkout</p>
+            <p className="eyebrow !text-[0.68rem] text-ink-soft font-semibold">Secure checkout</p>
           </div>
 
-          <h1 className="font-display mt-10 text-5xl font-light sm:text-6xl">Checkout</h1>
+          <h1 className="font-display mt-10 text-5xl font-normal text-ink sm:text-6xl">Checkout</h1>
 
           <form onSubmit={placeOrder} noValidate className="mt-12 grid gap-14 lg:grid-cols-12 lg:gap-20">
             {/* Left: details */}
@@ -431,7 +431,7 @@ export default function CheckoutView() {
                   </select>
                 </Field>
                 <Field label="Delivery estimate">
-                  <p className="border-b border-[var(--hairline)] py-[0.85rem] text-[0.95rem] text-ink-soft">
+                  <p className="border-b border-ink/30 py-[0.85rem] text-[1rem] font-medium text-ink">
                     {form.district === "Dhaka" ? "1–2 working days (Inside Dhaka)" : "3–5 working days (Nationwide)"}
                   </p>
                 </Field>
@@ -456,7 +456,7 @@ export default function CheckoutView() {
                   Your bag contains an <strong>Exclusive Drop (1-of-1)</strong> piece. Cash on delivery is not available—only online payment is accepted, and whoever confirms payment first acquires the piece.
                 </p>
               )}
-              <div className="divide-y divide-[var(--hairline)] border-y border-[var(--hairline)]">
+              <div className="divide-y divide-ink/15 border-y border-ink/20">
                 {availablePayments.map((p) => (
                   <label key={p.id} className="flex cursor-pointer items-start gap-4 py-5">
                     <input
@@ -467,8 +467,8 @@ export default function CheckoutView() {
                       className="mt-1.5 accent-[#1E1915]"
                     />
                     <span className="flex-1">
-                      <span className="block text-sm">{p.title}</span>
-                      <span className="mt-1 block text-xs leading-relaxed text-mute">{p.note}</span>
+                      <span className="block text-[0.98rem] font-semibold text-ink">{p.title}</span>
+                      <span className="mt-1 block text-[0.84rem] leading-relaxed text-ink-soft">{p.note}</span>
                     </span>
                   </label>
                 ))}
@@ -477,30 +477,30 @@ export default function CheckoutView() {
 
             {/* Right: summary */}
             <aside className="lg:col-span-5">
-              <div className="border border-[var(--hairline)] bg-paper p-7 sm:p-9 lg:sticky lg:top-28">
-                <p className="eyebrow">Your order</p>
+              <div className="border border-ink/20 bg-paper p-7 sm:p-9 lg:sticky lg:top-28 shadow-xs">
+                <p className="eyebrow !text-[0.74rem] font-semibold text-ink">Your order</p>
 
-                <ul className="mt-6 divide-y divide-[var(--hairline)]">
+                <ul className="mt-6 divide-y divide-ink/15">
                   {bag.map((i) => (
                     <li key={`${i.product.id}-${i.selectedColor}`} className="flex gap-4 py-5">
                       <img src={i.product.image} alt="" className="h-24 w-[4.5rem] shrink-0 object-cover" />
                       <div className="flex min-w-0 flex-1 flex-col">
                         <div className="flex justify-between gap-3">
-                          <p className="font-display text-lg font-light leading-tight">{i.product.name}</p>
-                          <p className="shrink-0 text-sm tabular-nums">{formatBDT(i.product.priceBDT * i.quantity)}</p>
+                          <p className="font-display text-xl font-medium text-ink leading-tight">{i.product.name}</p>
+                          <p className="shrink-0 text-[0.95rem] font-semibold tabular-nums text-ink">{formatBDT(i.product.priceBDT * i.quantity)}</p>
                         </div>
-                        <p className="eyebrow mt-1.5 !text-[0.56rem] text-mute">{i.selectedColor}</p>
+                        <p className="eyebrow mt-1.5 !text-[0.65rem] font-medium text-ink-soft">{i.selectedColor}</p>
                         <div className="mt-auto flex items-center justify-between pt-3">
-                          {i.product.category === "nakshi-kantha" ? (
-                            <span className="eyebrow !text-[0.54rem] text-mute">One of one</span>
+                          {i.product.collectionId ? (
+                            <span className="eyebrow !text-[0.62rem] font-semibold text-ink-soft">One of one</span>
                           ) : (
-                            <div className="flex items-center gap-3 text-sm">
-                              <button type="button" className="press px-1 cursor-pointer" onClick={() => updateQty(i.product.id, i.selectedColor, -1)} aria-label="Decrease">−</button>
+                            <div className="flex items-center gap-3 text-sm font-medium text-ink">
+                              <button type="button" className="press px-1.5 cursor-pointer" onClick={() => updateQty(i.product.id, i.selectedColor, -1)} aria-label="Decrease">−</button>
                               <span className="tabular-nums">{i.quantity}</span>
-                              <button type="button" className="press px-1 cursor-pointer" onClick={() => updateQty(i.product.id, i.selectedColor, 1)} aria-label="Increase">+</button>
+                              <button type="button" className="press px-1.5 cursor-pointer" onClick={() => updateQty(i.product.id, i.selectedColor, 1)} aria-label="Increase">+</button>
                             </div>
                           )}
-                          <button type="button" onClick={() => removeItem(i.product.id, i.selectedColor)} className="nav-link eyebrow !text-[0.56rem] text-mute cursor-pointer">
+                          <button type="button" onClick={() => removeItem(i.product.id, i.selectedColor)} className="nav-link eyebrow !text-[0.64rem] font-medium text-ink-soft hover:text-ink cursor-pointer">
                             Remove
                           </button>
                         </div>
@@ -509,33 +509,33 @@ export default function CheckoutView() {
                   ))}
                 </ul>
 
-                <div className="border-t border-[var(--hairline)] py-6">
+                <div className="border-t border-ink/15 py-6">
                   <PromoField promo={promo} onPromo={setPromo} promoRules={promoRules} />
                 </div>
 
                 {giftNote.trim() && (
-                  <p className="border-t border-[var(--hairline)] py-5 text-xs leading-relaxed text-mute">
-                    Calligraphy card: <span className="italic text-ink-soft">“{giftNote.trim()}”</span>
+                  <p className="border-t border-ink/15 py-5 text-xs leading-relaxed text-ink-soft">
+                    Calligraphy card: <span className="italic font-medium text-ink">“{giftNote.trim()}”</span>
                   </p>
                 )}
 
-                <div className="space-y-2 border-t border-[var(--hairline)] pt-6 text-sm text-ink-soft">
+                <div className="space-y-2.5 border-t border-ink/15 pt-6 text-[0.92rem] font-medium text-ink">
                   <Row label="Subtotal" value={formatBDT(price.subtotal)} />
                   {price.discount > 0 && <Row label="Founding courtesy" value={`− ${formatBDT(price.discount)}`} />}
                   <Row label="Delivery" value={price.delivery === 0 ? "Complimentary" : formatBDT(price.delivery)} />
                 </div>
                 {toFree > 0 && (
-                  <p className="mt-3 text-xs text-mute">
-                    Add <span className="tabular-nums text-ink">{formatBDT(toFree)}</span> for complimentary delivery.
+                  <p className="mt-3 text-xs font-medium text-ink-soft">
+                    Add <span className="tabular-nums font-semibold text-ink">{formatBDT(toFree)}</span> for complimentary delivery.
                   </p>
                 )}
-                <div className="mt-5 flex items-baseline justify-between border-t border-[var(--hairline)] pt-5">
-                  <span className="eyebrow">Total</span>
-                  <span className="font-display text-3xl tabular-nums">{formatBDT(price.total)}</span>
+                <div className="mt-5 flex items-baseline justify-between border-t border-ink/20 pt-5">
+                  <span className="eyebrow !text-[0.74rem] font-semibold text-ink">Total</span>
+                  <span className="font-display text-3xl font-medium tabular-nums text-ink">{formatBDT(price.total)}</span>
                 </div>
 
                 {gatewayNotice && (
-                  <p className="mt-4 border border-alta/40 bg-alta/10 px-4 py-3 text-xs text-alta">
+                  <p className="mt-4 border border-alta/40 bg-alta/10 px-4 py-3 text-xs font-medium text-alta">
                     {gatewayNotice}
                   </p>
                 )}
@@ -553,7 +553,7 @@ export default function CheckoutView() {
                     ? "Proceed to UddoktaPay"
                     : "Place order"}
                 </button>
-                <p className="mt-4 text-center text-xs leading-relaxed text-mute">
+                <p className="mt-4 text-center text-xs leading-relaxed text-ink-soft">
                   Wrapped in kora muslin at no charge. Refundable only if opened in front of the delivery person and found damaged, or if the delivered item does not match what was promised.
                 </p>
               </div>
@@ -721,9 +721,9 @@ function Confirmation({ order }: { order: PlacedOrder }) {
 /* ───────── Small helpers ───────── */
 function Step({ n, title, className = "" }: { n: string; title: string; className?: string }) {
   return (
-    <div className={`mb-4 flex items-baseline gap-5 border-b border-[var(--hairline)] pb-4 ${className}`}>
-      <span className="font-num text-sm italic text-gold">{n}</span>
-      <h2 className="font-display text-3xl font-light">{title}</h2>
+    <div className={`mb-4 flex items-baseline gap-5 border-b border-ink/25 pb-4 ${className}`}>
+      <span className="font-num text-base font-semibold italic text-[#8A6220]">{n}</span>
+      <h2 className="font-display text-3xl font-normal text-ink">{title}</h2>
     </div>
   );
 }
@@ -741,18 +741,20 @@ function Field({
 }) {
   return (
     <label className={`block pt-5 ${className}`}>
-      <span className="eyebrow !text-[0.6rem] text-mute">{label}</span>
+      <span className="block text-[0.75rem] font-semibold uppercase tracking-[0.16em] text-ink">
+        {label}
+      </span>
       {children}
-      {error && <span className="mt-2 block text-xs text-alta">{error}</span>}
+      {error && <span className="mt-2 block text-xs font-medium text-alta">{error}</span>}
     </label>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between">
+    <div className="flex justify-between text-ink">
       <span>{label}</span>
-      <span className="tabular-nums">{value}</span>
+      <span className="tabular-nums font-semibold">{value}</span>
     </div>
   );
 }
