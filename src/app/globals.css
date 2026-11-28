@@ -38,6 +38,33 @@
   --color-alta: #8C2F2F;
   --color-river: #2F5D58;
   --color-marigold: #B9772C;
+
+  /* Admin Studio ("Quiet Atelier") Semantic Tokens */
+  --color-a-canvas: #FAF9F7;
+  --color-a-sidebar: #F3F1ED;
+  --color-a-surface: #FFFFFF;
+  --color-a-subtle: #F6F4F0;
+  --color-a-subtle-hover: #EDE9E2;
+  --color-a-overlay: rgba(24, 21, 18, 0.45);
+  --color-a-border: rgba(24, 21, 18, 0.08);
+  --color-a-border-strong: rgba(24, 21, 18, 0.16);
+  --color-a-text-1: #181512;
+  --color-a-text-2: #4A423B;
+  --color-a-text-3: #6B6158;
+  --color-a-on-ink: #FAF9F7;
+  --color-a-accent: #B08A4F;
+  --color-a-accent-text: #7A5821;
+  --color-a-accent-soft: #F7F0E3;
+  --color-a-ink-btn: #181512;
+  --color-a-ink-btn-hover: #2F2721;
+  --color-a-success: #067647;
+  --color-a-success-bg: #ECFDF3;
+  --color-a-warning: #B54708;
+  --color-a-warning-bg: #FFFAEB;
+  --color-a-danger: #B42318;
+  --color-a-danger-bg: #FEF3F2;
+  --color-a-info: #175CD3;
+  --color-a-info-bg: #EFF8FF;
 }
 
 :root {
@@ -491,42 +518,133 @@
   );
 }
 
-/* ─── Refined Studio Console (Emil Kowalski Design-Engineering Principles) ─── */
+/* ─── Refined Studio Console ("Quiet Atelier" & Emil Kowalski Principles) ─── */
 .admin-ui {
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #181512;
-  background-color: #FAF9F7;
-  font-size: 13.5px;
-  line-height: 1.5;
+  /* Surfaces */
+  --a-canvas: #FAF9F7;
+  --a-sidebar: #F3F1ED;
+  --a-surface: #FFFFFF;
+  --a-subtle: #F6F4F0;
+  --a-subtle-hover: #EDE9E2;
+  --a-overlay: rgba(24, 21, 18, 0.45);
+
+  /* Borders */
+  --a-border: rgba(24, 21, 18, 0.08);
+  --a-border-strong: rgba(24, 21, 18, 0.16);
+
+  /* Text (all >= 4.5:1 on canvas, body >= 7:1) */
+  --a-text-1: #181512;
+  --a-text-2: #4A423B;
+  --a-text-3: #6B6158;
+  --a-on-ink: #FAF9F7;
+
+  /* Accent (brand gold) — used sparingly */
+  --a-accent: #B08A4F;
+  --a-accent-text: #7A5821;
+  --a-accent-soft: #F7F0E3;
+  --a-ink-btn: #181512;
+  --a-ink-btn-hover: #2F2721;
+
+  /* Status */
+  --a-success: #067647;
+  --a-success-bg: #ECFDF3;
+  --a-warning: #B54708;
+  --a-warning-bg: #FFFAEB;
+  --a-danger: #B42318;
+  --a-danger-bg: #FEF3F2;
+  --a-info: #175CD3;
+  --a-info-bg: #EFF8FF;
+
+  /* Radius / shadow / focus */
+  --a-radius-sm: 6px;
+  --a-radius: 10px;
+  --a-radius-lg: 14px;
+  --a-shadow-card: 0 1px 2px rgba(24, 21, 18, 0.04);
+  --a-shadow-pop: 0 12px 32px rgba(24, 21, 18, 0.14), 0 0 0 1px rgba(24, 21, 18, 0.06);
+  --a-ring: 0 0 0 3px rgba(176, 138, 79, 0.28);
+
+  font-family: "Times New Roman Numerals", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--a-text-1);
+  background-color: var(--a-canvas);
+  font-size: 14px;
+  line-height: 22px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-.admin-ui table th {
-  color: #635A52;
-  font-size: 11px;
+.admin-ui :focus-visible {
+  outline: none;
+  box-shadow: var(--a-ring);
+}
+
+/* Admin Type Scale — nothing below 12px */
+.a-display {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--a-text-1);
+}
+
+.a-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--a-text-1);
+}
+
+.a-body {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--a-text-1);
+}
+
+.a-body-sm {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--a-text-2);
+}
+
+.a-caption {
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  color: var(--a-text-3);
+}
+
+.admin-ui table th {
+  color: var(--a-text-3);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .admin-ui table td {
-  color: #181512;
-  font-size: 13px;
+  color: var(--a-text-1);
+  font-size: 14px;
+  line-height: 22px;
   font-weight: 400;
 }
 
 .admin-ui label {
-  color: #3D3630;
+  color: var(--a-text-2);
   font-size: 12px;
+  line-height: 16px;
   font-weight: 500;
 }
 
 .admin-ui input,
 .admin-ui select,
 .admin-ui textarea {
-  color: #181512;
+  color: var(--a-text-1);
   font-size: 13px;
+  line-height: 20px;
   font-weight: 400;
 }
 
@@ -540,24 +658,110 @@
     box-shadow 150ms ease;
 }
 
-.admin-press:active {
+.admin-press:active:not(:disabled) {
   transform: scale(0.97);
 }
 
-/* Smooth panel / inline editor entrance — never from scale(0), < 220ms */
+/* Smooth panel / inline editor entrance — never from scale(0), 180-220ms */
 .admin-surface-enter {
   opacity: 1;
   transform: translateY(0) scale(1);
+  transition:
+    opacity 190ms var(--ease-out),
+    transform 190ms var(--ease-out);
+}
+
+@starting-style {
+  .admin-surface-enter {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+}
+
+/* Origin-aware popover / dropdown entrance (180ms ease-out) */
+.admin-popover-enter {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: var(--popover-origin, top right);
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+}
+
+@starting-style {
+  .admin-popover-enter {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+/* Centered modal / dialog entrance (transform-origin: center) */
+.admin-dialog-enter {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: center;
   transition:
     opacity 200ms var(--ease-out),
     transform 200ms var(--ease-out);
 }
 
 @starting-style {
-  .admin-surface-enter {
+  .admin-dialog-enter {
     opacity: 0;
-    transform: translateY(6px) scale(0.985);
+    transform: translateY(4px) scale(0.98);
   }
+}
+
+/* Backdrop fade */
+.admin-backdrop-enter {
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+@starting-style {
+  .admin-backdrop-enter {
+    opacity: 0;
+  }
+}
+
+/* Right-side sheet / drawer entrance (280ms --ease-drawer) */
+.admin-drawer-right {
+  transform: translateX(0);
+  transition: transform 280ms var(--ease-drawer);
+}
+
+@starting-style {
+  .admin-drawer-right {
+    transform: translateX(100%);
+  }
+}
+
+/* Left-side mobile nav drawer entrance (280ms --ease-drawer) */
+.admin-drawer-left {
+  transform: translateX(0);
+  transition: transform 280ms var(--ease-drawer);
+}
+
+@starting-style {
+  .admin-drawer-left {
+    transform: translateX(-100%);
+  }
+}
+
+/* Subtle shimmer skeleton (opacity pulse only — GPU composited) */
+@keyframes adminPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.admin-skeleton {
+  background-color: var(--a-subtle);
+  border-radius: var(--a-radius-sm);
+  animation: adminPulse 1.5s ease-in-out infinite;
 }
 
 /* Sonner-inspired toast entrance */
@@ -579,18 +783,17 @@
 /* Touch-safe hover interactions */
 @media (hover: hover) and (pointer: fine) {
   .admin-row-hover:hover {
-    background-color: #FAF8F5;
+    background-color: var(--a-subtle);
   }
 
   .admin-kpi-card {
     transition:
-      border-color 180ms ease,
-      box-shadow 180ms ease;
+      border-color 150ms ease,
+      box-shadow 150ms ease;
   }
 
   .admin-kpi-card:hover {
-    border-color: rgba(24, 21, 18, 0.16);
-    box-shadow: 0 2px 8px rgba(24, 21, 18, 0.05);
+    border-color: var(--a-border-strong);
   }
 }
 
@@ -621,6 +824,10 @@
   .hero-image,
   .swap-fade,
   .admin-surface-enter,
+  .admin-popover-enter,
+  .admin-dialog-enter,
+  .admin-drawer-right,
+  .admin-drawer-left,
   .admin-toast {
     transform: none !important;
     filter: none !important;
@@ -628,6 +835,11 @@
     clip-path: none !important;
     opacity: 1 !important;
     transition: opacity 200ms ease;
+  }
+
+  .admin-skeleton {
+    animation: none;
+    opacity: 0.7;
   }
 
   .scroll-cue {
@@ -642,6 +854,6 @@
 
   .press:active,
   .admin-press:active {
-    transform: none;
+    transform: none !important;
   }
 }
