@@ -1,5 +1,9 @@
 export type PillarId = "light-shades" | "nakshi-kantha" | "jewelry-boxes" | (string & {});
 
+export const NOKSHA_PALETTE = {
+  gold: "#B08A4F",
+} as const;
+
 export type ProductStatus = "ready" | "limited" | "waitlist" | "sold" | "hidden";
 
 export interface ColorSwatch {
