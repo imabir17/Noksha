@@ -1,23 +1,17 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Copy,
-  Download,
   ExternalLink,
   FileText,
   Layers,
   LogOut,
-  MessageCircle,
   Package,
-  Plus,
-  Printer,
   RefreshCw,
-  Search,
   Settings,
   Shield,
   ShoppingBag,
@@ -25,474 +19,215 @@ import {
   Tag,
   Trash2,
   TrendingDown,
-  Upload,
-  UserCheck,
   Users,
-  X,
   XCircle,
 } from "lucide-react";
-import { DropStatus, formatBDT, PillarId, ProductStatus } from "@/data/nokshaData";
-import { DbCategory, DbCollection, DbProduct } from "@/lib/db";
-import SiteContentEditor from "./SiteContentEditor";
+import { formatBDT } from "@/data/nokshaData";
+import { AdminOrder, AdminTab, canAccessSection } from "./adminTypes";
 import {
-  AdminCustomer,
-  AdminOrder,
-  AdminPayload,
-  canAccessSection,
-  downloadCsv,
-  toBdWhatsApp,
-} from "./adminTypes";
-
-type AdminTab =
-  | "overview"
-  | "analytics"
-  | "orders"
-  | "cancellations"
-  | "collections"
-  | "products"
-  | "customers"
-  | "promos"
-  | "abandoned"
-  | "leads"
-  | "content"
-  | "staff"
-  | "audit";
-
-const ORDER_STATUSES = ["new", "confirmed", "packed", "shipped", "delivered", "cancelled"];
-
-const EMPTY_CATEGORY: Partial<DbCategory> = {
-  id: "",
-  shortName: "",
-  name: "",
-  bengaliName: "",
-  subtitle: "",
-  sortOrder: 4,
-  active: true,
-};
-
-const EMPTY_COLLECTION: Partial<DbCollection> = {
-  id: "",
-  dropNumber: "Drop 04",
-  shortName: "Drop 04",
-  title: "",
-  bengaliTitle: "",
-  subtitle: "",
-  description: "",
-  story: "",
-  craftMetric: "Exclusive 1-of-1 Drop · Handcrafted in Bangladesh",
-  priceRange: "৳ 6,500 – ৳ 18,000",
-  heroImage: "/images/hero-courtyard.png",
-  bannerImage: "/images/hero-courtyard.png",
-  accentHex: "#B08A4F",
-  exclusivity: "one_of_one",
-  dropStatus: "upcoming",
-  releaseDate: "Upcoming Drop",
-  sortOrder: 4,
-  active: true,
-};
-
-const EMPTY_PRODUCT: Partial<DbProduct> = {
-  id: "",
-  sku: "",
-  name: "",
-  bengaliName: "",
-  category: "light-shades",
-  collectionId: "",
-  acquiredBy: "",
-  priceBDT: 5500,
-  originalPriceBDT: undefined,
-  costBDT: 2600,
-  stockQty: 8,
-  lowStockThreshold: 2,
-  status: "ready",
-  statusLabel: "In Stock",
-  region: "Bangladesh",
-  artisanHours: 42,
-  artisanHoursLabel: "42 Hours Handcrafted",
-  materials: "",
-  dimensions: "",
-  story: "",
-  care: "",
-  image: "/images/light-jamdani-pendant.png",
-  gallery: ["/images/light-jamdani-pendant.png"],
-  accentColor: "#B08A4F",
-  colors: [{ name: "Signature", hex: "#B08A4F" }],
-};
+  AdminContext,
+  PostActionOptions,
+  ToastAction,
+  ToastItem,
+  useAdminDataLoader,
+} from "./hooks/useAdminData";
+import { useAdminTab } from "./hooks/useAdminTab";
+import OrderSlipModal from "./print/OrderSlipModal";
+import OverviewTab from "./tabs/OverviewTab";
+import AnalyticsTab from "./tabs/AnalyticsTab";
+import OrdersTab from "./tabs/OrdersTab";
+import CancellationsTab from "./tabs/CancellationsTab";
+import CollectionsTab from "./tabs/CollectionsTab";
+import ProductsTab from "./tabs/ProductsTab";
+import CustomersTab from "./tabs/CustomersTab";
+import AbandonedTab from "./tabs/AbandonedTab";
+import LeadsTab from "./tabs/LeadsTab";
+import PromosTab from "./tabs/PromosTab";
+import ContentTab from "./tabs/ContentTab";
+import StaffTab from "./tabs/StaffTab";
+import AuditTab from "./tabs/AuditTab";
 
 export default function AdminCommandCentre() {
-  const [data, setData] = useState<AdminPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState("");
+  const {
+    data,
+    metrics,
+    loading,
+    refreshing,
+    error,
+    authError,
+    lastSyncedAt,
+    refresh,
+    login,
+    logout,
+  } = useAdminDataLoader();
+
+  const { activeTab, setActiveTab, queryParams, setQueryParam } = useAdminTab(data?.user.role);
+
   const [email, setEmail] = useState("owner@noksha.bd");
   const [password, setPassword] = useState("NokshaOwner2026!");
-  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
-  const [toast, setToast] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [printingSlipOrders, setPrintingSlipOrders] = useState<AdminOrder[]>([]);
+  const [triggerNewCounter] = useState(0);
 
-  // Filters & Selections
-  const [orderFilter, setOrderFilter] = useState("all");
-  const [orderSearch, setOrderSearch] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const [printingSlipOrder, setPrintingSlipOrder] = useState<AdminOrder | null>(null);
+  const notify = useCallback(
+    (
+      message: string,
+      opts?: { variant?: "success" | "error" | "info"; action?: ToastAction }
+    ) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const item: ToastItem = {
+        id,
+        message,
+        variant: opts?.variant || "success",
+        action: opts?.action,
+      };
+      setToasts((prev) => [...prev.slice(-2), item]);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, opts?.action ? 5500 : 3400);
+    },
+    []
+  );
 
-  const openPrintSlip = (o: AdminOrder) => {
-    setPrintingSlipOrder(o);
+  const copyText = useCallback(
+    (value: string, label = "Copied to clipboard") => {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        navigator.clipboard.writeText(value);
+        notify(label, { variant: "info" });
+      }
+    },
+    [notify]
+  );
+
+  const postAction = useCallback(
+    async (
+      body: Record<string, unknown>,
+      successMsg: string,
+      opts?: PostActionOptions
+    ): Promise<boolean> => {
+      try {
+        const res = await fetch("/api/admin/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const out = await res.json();
+        if (!res.ok) {
+          notify(out.error || "Action failed", { variant: "error" });
+          return false;
+        }
+        if (!opts?.silent) {
+          notify(successMsg, { variant: "success", action: opts?.undoAction });
+        }
+        await refresh();
+        return true;
+      } catch {
+        notify("Network error while saving changes", { variant: "error" });
+        return false;
+      }
+    },
+    [notify, refresh]
+  );
+
+  const openPrintSlip = useCallback((order: AdminOrder) => {
+    setPrintingSlipOrders([order]);
     setTimeout(() => {
       if (typeof window !== "undefined") {
         window.print();
       }
     }, 120);
-  };
-  const [orderStatusDraft, setOrderStatusDraft] = useState("");
-  const [paymentStatusDraft, setPaymentStatusDraft] = useState("");
-  const [courierDraft, setCourierDraft] = useState("");
-  const [trackingDraft, setTrackingDraft] = useState("");
-  const [internalNoteDraft, setInternalNoteDraft] = useState("");
-  const [timelineNoteDraft, setTimelineNoteDraft] = useState("");
-
-  // Product, Collection & Category Editor state
-  const [editingProduct, setEditingProduct] = useState<Partial<DbProduct> | null>(null);
-  const [editingCollection, setEditingCollection] = useState<Partial<DbCollection> | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Partial<DbCategory> | null>(null);
-  const [uploadingImg, setUploadingImg] = useState(false);
-
-  // Customer CRM Inspector state
-  const [selectedCustomer, setSelectedCustomer] = useState<AdminCustomer | null>(null);
-  const [custTagsDraft, setCustTagsDraft] = useState("");
-  const [custNotesDraft, setCustNotesDraft] = useState("");
-  const [custVipDraft, setCustVipDraft] = useState(false);
-
-  // Promo Editor state
-  const [promoCodeDraft, setPromoCodeDraft] = useState("");
-  const [promoTypeDraft, setPromoTypeDraft] = useState<"percent" | "fixed">("percent");
-  const [promoValDraft, setPromoValDraft] = useState("10");
-  const [promoMinDraft, setPromoMinDraft] = useState("0");
-  const [promoMaxUsesDraft, setPromoMaxUsesDraft] = useState("100");
-  const [promoLabelDraft, setPromoLabelDraft] = useState("");
-
-  // Leads filter
-  const [leadFilter, setLeadFilter] = useState("all");
-
-  // Site Content state
-  const [contentDraft, setContentDraft] = useState<Record<string, string>>({});
-
-  // Audit Log filter state
-  const [auditSearch, setAuditSearch] = useState("");
-  const [auditActorFilter, setAuditActorFilter] = useState("all");
-
-  // Staff Editor state
-  const [staffName, setStaffName] = useState("");
-  const [staffEmail, setStaffEmail] = useState("");
-  const [staffRole, setStaffRole] = useState<"owner" | "manager" | "support">("support");
-  const [staffPassword, setStaffPassword] = useState("");
-
-  const notify = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast((curr) => (curr === msg ? null : curr)), 3200);
-  };
-
-  const fetchDashboard = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/data", { cache: "no-store" });
-      if (res.status === 401) {
-        setData(null);
-        setLoading(false);
-        return;
-      }
-      if (!res.ok) throw new Error("Failed to fetch");
-      const payload = (await res.json()) as AdminPayload;
-      setData(payload);
-      setContentDraft(payload.siteContent || {});
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
-  useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
+  const openMultiplePrintSlips = useCallback((orders: AdminOrder[]) => {
+    if (!orders.length) return;
+    setPrintingSlipOrders(orders);
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.print();
+      }
+    }, 150);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthError("");
-    try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const out = await res.json();
-      if (!res.ok) {
-        setAuthError(out.error || "Login failed");
-        return;
-      }
-      await fetchDashboard();
-    } catch {
-      setAuthError("Network error while signing in.");
-    }
+    await login(email, password);
   };
 
-  const handleLogout = async () => {
-    await fetch("/api/admin/auth", { method: "DELETE" });
-    setData(null);
-  };
-
-  const postAction = async (body: Record<string, unknown>, successMsg: string) => {
-    const res = await fetch("/api/admin/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const out = await res.json();
-    if (!res.ok) {
-      notify(out.error || "Action failed");
-      return false;
-    }
-    notify(successMsg);
-    await fetchDashboard();
-    return true;
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingProduct) return;
-    setUploadingImg(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const out = await res.json();
-      if (res.ok && out.url) {
-        setEditingProduct((prev) => ({
-          ...prev,
-          image: out.url,
-          gallery: [out.url, ...(prev?.gallery ?? []).filter((g) => g !== out.url)],
-        }));
-        notify("Image uploaded and attached to piece");
-      } else {
-        notify(out.error || "Upload failed");
-      }
-    } catch {
-      notify("Upload error");
-    } finally {
-      setUploadingImg(false);
-    }
-  };
-
-  const handleCollectionImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    targetField: "heroImage" | "bannerImage"
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingCollection) return;
-    setUploadingImg(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const out = await res.json();
-      if (res.ok && out.url) {
-        setEditingCollection((prev) => ({
-          ...prev,
-          [targetField]: out.url,
-          ...(targetField === "heroImage" && !prev?.bannerImage ? { bannerImage: out.url } : {}),
-        }));
-        notify("Collection image uploaded!");
-      } else {
-        notify(out.error || "Upload failed");
-      }
-    } catch {
-      notify("Upload error");
-    } finally {
-      setUploadingImg(false);
-    }
-  };
-
-  const openOrderInspector = (o: AdminOrder) => {
-    setSelectedOrder(o);
-    setOrderStatusDraft(o.status);
-    setPaymentStatusDraft(o.paymentStatus);
-    setCourierDraft(o.courierName);
-    setTrackingDraft(o.trackingCode);
-    setInternalNoteDraft(o.internalNotes);
-    setTimelineNoteDraft("");
-  };
-
-  const openCustomerInspector = (c: AdminCustomer) => {
-    setSelectedCustomer(c);
-    setCustTagsDraft(c.tags);
-    setCustNotesDraft(c.notes);
-    setCustVipDraft(c.vip);
-  };
-
-  // Computed KPIs
-  const metrics = useMemo(() => {
-    if (!data) return null;
-    const validOrders = data.orders.filter((o) => o.status !== "cancelled");
-    const grossRevenue = validOrders.reduce((s, o) => s + o.totalBDT, 0);
-    const aov = validOrders.length > 0 ? Math.round(grossRevenue / validOrders.length) : 0;
-
-    const costMap = new Map(data.products.map((p) => [p.id, p.costBDT]));
-    let totalCost = 0;
-    for (const o of validOrders) {
-      for (const item of o.items) {
-        const unitCost = (item.productId && costMap.get(item.productId)) || Math.round(item.priceBDT * 0.48);
-        totalCost += unitCost * item.quantity;
-      }
-    }
-    const estProfit = Math.max(0, grossRevenue - totalCost);
-
-    const lowStockProducts = data.products.filter(
-      (p) =>
-        p.status !== "waitlist" &&
-        (p.status === "sold" || p.stockQty <= p.lowStockThreshold)
-    );
-
-    const unrecoveredCarts = data.abandonedCheckouts.filter((a) => !a.recovered);
-    const abandonedValue = unrecoveredCarts.reduce((s, a) => s + a.subtotalBDT, 0);
-
-    const convRate =
-      data.analytics.totalSessions > 0
-        ? ((validOrders.length / data.analytics.totalSessions) * 100).toFixed(1)
-        : "0.0";
-
-    return {
-      grossRevenue,
-      estProfit,
-      validOrdersCount: validOrders.length,
-      pendingOrdersCount: data.orders.filter((o) => o.status === "new" || o.status === "confirmed").length,
-      aov,
-      lowStockProducts,
-      unrecoveredCarts,
-      abandonedValue,
-      convRate,
-    };
-  }, [data]);
-
-  const filteredOrders = useMemo(() => {
-    if (!data) return [];
-    return data.orders.filter((o) => {
-      if (orderFilter !== "all" && o.status !== orderFilter) return false;
-      if (orderSearch.trim()) {
-        const q = orderSearch.trim().toLowerCase();
-        return (
-          o.id.toLowerCase().includes(q) ||
-          o.customerName.toLowerCase().includes(q) ||
-          o.customerPhone.toLowerCase().includes(q) ||
-          o.district.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [data, orderFilter, orderSearch]);
-
-  const copyDailyDigest = () => {
-    if (!data || !metrics) return;
-    const topPiece = [...data.products].sort((a, b) => b.viewsCount - a.viewsCount)[0];
-    const summary = [
-      `📊 *NOKSHA (নকশা) — Command Digest* (${new Date().toLocaleDateString("en-GB")})`,
-      `• Gross Revenue: ${formatBDT(metrics.grossRevenue)} (Est. Net Profit: ${formatBDT(metrics.estProfit)})`,
-      `• Active Orders: ${metrics.validOrdersCount} (${metrics.pendingOrdersCount} awaiting dispatch)`,
-      `• Visitors / Sessions: ${data.analytics.totalVisitors} visitors / ${data.analytics.totalSessions} sessions (${metrics.convRate}% conv.)`,
-      `• Most Viewed Piece: ${topPiece?.name ?? "N/A"} (${topPiece?.viewsCount ?? 0} views)`,
-      `• Unrecovered Carts: ${metrics.unrecoveredCarts.length} (${formatBDT(metrics.abandonedValue)} at risk)`,
-      `• Low Stock / Sold Alerts: ${metrics.lowStockProducts.length} pieces`,
-      `• Leads & Waitlist: ${data.leads.length} total`,
-    ].join("\n");
-    navigator.clipboard.writeText(summary);
-    notify("Daily digest copied to clipboard for WhatsApp / Email!");
-  };
-
-  const inputCls =
-    "w-full px-3 py-2 bg-white border border-black/[0.12] rounded-lg text-[13px] text-[#181512] font-normal placeholder:text-[#8A8077] focus:outline-none focus:border-[#181512] focus:ring-2 focus:ring-[#181512]/[0.08] transition-[border-color,box-shadow] duration-150";
-  const cardCls =
-    "bg-white border border-black/[0.08] rounded-xl shadow-[0_1px_2px_rgba(24,21,18,0.04),0_4px_12px_rgba(24,21,18,0.02)]";
-  const thCls =
-    "py-2.5 px-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-[#635A52] bg-[#FAF9F7] border-b border-black/[0.07]";
-
-  /* ───────────────────────── 1. Loading & Login Screen ───────────────────────── */
   if (loading && !data) {
     return (
-      <div className="admin-ui min-h-screen bg-[#FAF9F7] text-[#181512] flex items-center justify-center gap-2.5 text-[13px] font-normal">
-        <span className="h-2 w-2 rounded-full bg-[#B08A4F] animate-pulse" />
+      <div className="admin-ui min-h-screen bg-a-canvas text-a-text-1 flex items-center justify-center gap-2.5 text-[14px]">
+        <span className="h-2 w-2 rounded-full bg-a-accent animate-pulse" />
         Loading Noksha Studio Console…
       </div>
     );
   }
 
-  if (!data) {
+  if (!data || !metrics) {
     return (
-      <div className="admin-ui min-h-screen bg-[#FAF9F7] text-[#181512] flex items-center justify-center p-5">
-        <div className="admin-surface-enter w-full max-w-[400px] bg-white border border-black/[0.08] rounded-2xl p-8 shadow-[0_1px_2px_rgba(24,21,18,0.04),0_12px_32px_rgba(24,21,18,0.06)]">
-          <div className="flex flex-col items-center text-center border-b border-black/[0.07] pb-6">
+      <div className="admin-ui min-h-screen bg-a-canvas text-a-text-1 flex items-center justify-center p-5">
+        <div className="admin-surface-enter w-full max-w-[400px] bg-a-surface border border-a-border rounded-2xl p-8 shadow-[var(--a-shadow-pop)]">
+          <div className="flex flex-col items-center text-center border-b border-a-border pb-6">
             <img
               src="/brand/noksha-logo.png"
               alt="Noksha — Handcrafted in Bangladesh"
               className="h-12 w-auto object-contain"
             />
-            <p className="text-[11px] uppercase tracking-[0.2em] text-[#8A6932] font-medium mt-4">
+            <p className="text-[12px] uppercase tracking-[0.18em] text-a-accent-text font-medium mt-4">
               Studio Console &amp; CRM
             </p>
-            <h1 className="font-display text-3xl font-normal text-[#181512] mt-1">
+            <h1 className="font-display text-3xl font-normal text-a-text-1 mt-1">
               Staff Sign In
             </h1>
           </div>
 
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
-              <label className="block text-[12px] font-medium text-[#3D3630] mb-1.5">
-                Staff Email
-              </label>
+              <label className="block mb-1.5">Staff Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={inputCls}
+                className="w-full px-3 py-2 bg-a-subtle border border-a-border rounded-lg text-[13px] text-a-text-1 focus:outline-none focus:border-a-accent"
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#3D3630] mb-1.5">
-                Password
-              </label>
+              <label className="block mb-1.5">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={inputCls}
+                className="w-full px-3 py-2 bg-a-subtle border border-a-border rounded-lg text-[13px] text-a-text-1 focus:outline-none focus:border-a-accent"
               />
             </div>
 
             {authError && (
-              <p className="text-[12.5px] font-medium text-[#9B2C2C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2">
+              <p className="text-[13px] font-medium text-a-danger bg-a-danger-bg border border-a-border rounded-lg px-3 py-2">
                 {authError}
               </p>
             )}
 
             <button
               type="submit"
-              className="admin-press w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-white font-medium text-[13px] rounded-lg cursor-pointer shadow-xs"
+              className="admin-press w-full py-2.5 bg-a-ink-btn hover:bg-a-ink-btn-hover text-a-on-ink font-medium text-[13px] rounded-lg cursor-pointer"
             >
               Sign In
             </button>
           </form>
 
-          {/* Quick Role Switcher for Localhost Testing */}
-          <div className="mt-6 pt-5 border-t border-black/[0.07]">
-            <p className="text-[11.5px] font-medium text-[#635A52] mb-2.5">
+          <div className="mt-6 pt-5 border-t border-a-border">
+            <p className="text-[12px] font-medium text-a-text-3 mb-2.5">
               Quick-fill staff account
             </p>
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-[#F3F1ED]">
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-a-sidebar">
               <button
                 type="button"
                 onClick={() => {
                   setEmail("owner@noksha.bd");
                   setPassword("NokshaOwner2026!");
                 }}
-                className="admin-press px-2 py-1.5 rounded-lg bg-white hover:bg-white/90 text-[#181512] text-[12px] font-medium shadow-2xs cursor-pointer"
+                className="admin-press px-2 py-1.5 rounded-lg bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer"
               >
                 Owner
               </button>
@@ -502,7 +237,7 @@ export default function AdminCommandCentre() {
                   setEmail("manager@noksha.bd");
                   setPassword("NokshaManager2026!");
                 }}
-                className="admin-press px-2 py-1.5 rounded-lg bg-white hover:bg-white/90 text-[#144740] text-[12px] font-medium shadow-2xs cursor-pointer"
+                className="admin-press px-2 py-1.5 rounded-lg bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer"
               >
                 Manager
               </button>
@@ -512,7 +247,7 @@ export default function AdminCommandCentre() {
                   setEmail("support@noksha.bd");
                   setPassword("NokshaSupport2026!");
                 }}
-                className="admin-press px-2 py-1.5 rounded-lg bg-white hover:bg-white/90 text-[#7A5417] text-[12px] font-medium shadow-2xs cursor-pointer"
+                className="admin-press px-2 py-1.5 rounded-lg bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer"
               >
                 Support
               </button>
@@ -522,7 +257,7 @@ export default function AdminCommandCentre() {
           <div className="mt-6 text-center">
             <Link
               href="/"
-              className="text-[12.5px] font-normal text-[#635A52] hover:text-[#181512] transition-colors"
+              className="text-[13px] font-normal text-a-text-2 hover:text-a-text-1 transition-colors"
             >
               ← Return to storefront
             </Link>
@@ -532,15 +267,34 @@ export default function AdminCommandCentre() {
     );
   }
 
+  const copyDailyDigest = () => {
+    const topPiece = [...data.products].sort((a, b) => b.viewsCount - a.viewsCount)[0];
+    const summary = [
+      `NOKSHA — Studio Digest (${new Date().toLocaleDateString("en-GB")})`,
+      `• Gross Revenue: ${formatBDT(metrics.grossRevenue)} (Est. Profit: ${formatBDT(metrics.estProfit)})`,
+      `• Active Orders: ${metrics.validOrdersCount} (${metrics.pendingOrdersCount} awaiting dispatch)`,
+      `• Visitors / Sessions: ${data.analytics.totalVisitors} / ${data.analytics.totalSessions} (${metrics.convRate}% conv.)`,
+      `• Most Viewed Piece: ${topPiece?.name ?? "N/A"} (${topPiece?.viewsCount ?? 0} views)`,
+      `• Unrecovered Carts: ${metrics.unrecoveredCarts.length} (${formatBDT(metrics.abandonedValue)} at risk)`,
+    ].join("\n");
+    copyText(summary, "Daily digest copied to clipboard");
+  };
+
   const navGroups: {
     group: string;
-    items: { id: AdminTab; label: string; icon: React.ReactNode; badge?: number; alertBadge?: boolean }[];
+    items: {
+      id: AdminTab;
+      label: string;
+      icon: React.ReactNode;
+      badge?: number;
+      alertBadge?: boolean;
+    }[];
   }[] = [
     {
       group: "Overview",
       items: [
-        { id: "overview", label: "Command Overview", icon: <Activity className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
-        { id: "analytics", label: "Analytics & Funnel", icon: <BarChart3 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+        { id: "overview", label: "Command Overview", icon: <Activity className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
+        { id: "analytics", label: "Analytics & Funnel", icon: <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
       ],
     },
     {
@@ -549,55 +303,55 @@ export default function AdminCommandCentre() {
         {
           id: "orders",
           label: "Orders Pipeline",
-          icon: <ShoppingBag className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
-          badge: metrics?.pendingOrdersCount,
+          icon: <ShoppingBag className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
+          badge: metrics.pendingOrdersCount,
         },
         {
           id: "cancellations",
           label: "Cancellation Requests",
-          icon: <XCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          icon: <XCircle className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
           badge: data.orders.filter((o) => o.cancellationRequested).length,
           alertBadge: true,
         },
         {
           id: "collections",
           label: "Drops & Categories",
-          icon: <Layers className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          icon: <Layers className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
           badge: data.collections.length,
         },
         {
           id: "products",
           label: "Products & Inventory",
-          icon: <Package className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
-          badge: metrics?.lowStockProducts.length,
+          icon: <Package className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
+          badge: metrics.lowStockProducts.length,
         },
       ],
     },
     {
       group: "Customers",
       items: [
-        { id: "customers", label: "Customers CRM", icon: <Users className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />, badge: data.customers.length },
+        { id: "customers", label: "Customers CRM", icon: <Users className="w-4 h-4 shrink-0" strokeWidth={1.75} />, badge: data.customers.length },
         {
           id: "abandoned",
           label: "Abandoned Carts",
-          icon: <TrendingDown className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
-          badge: metrics?.unrecoveredCarts.length,
+          icon: <TrendingDown className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
+          badge: metrics.unrecoveredCarts.length,
         },
         {
           id: "leads",
           label: "Waitlist & Leads",
-          icon: <Sparkles className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />,
+          icon: <Sparkles className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
           badge: data.leads.filter((l) => l.status === "new").length,
         },
-        { id: "promos", label: "Promo Codes", icon: <Tag className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+        { id: "promos", label: "Promo Codes", icon: <Tag className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
       ],
     },
     {
       group: "Workspace",
       items: [
-        { id: "content", label: "Site Content CMS", icon: <FileText className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
-        { id: "staff", label: "Staff & Roles", icon: <Shield className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
-        { id: "audit", label: "Activity Audit Log", icon: <Settings className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} /> },
+        { id: "content", label: "Site Content CMS", icon: <FileText className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
+        { id: "staff", label: "Staff & Roles", icon: <Shield className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
+        { id: "audit", label: "Activity Audit Log", icon: <Settings className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
       ],
     },
   ];
@@ -611,3570 +365,235 @@ export default function AdminCommandCentre() {
   const navItems = visibleGroups.flatMap((g) => g.items);
 
   return (
-    <>
-    {printingSlipOrder && (
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 sm:p-8 print:static print:bg-white print:p-0">
-        <div className="admin-surface-enter max-w-3xl mx-auto bg-white text-[#181512] border border-black/[0.12] rounded-xl p-8 sm:p-12 shadow-2xl print:border-0 print:shadow-none print:rounded-none">
-          <div className="mb-6 flex items-center justify-between border-b border-black/[0.08] pb-4 print:hidden">
-            <button
-              type="button"
-              onClick={() => setPrintingSlipOrder(null)}
-              className="admin-press px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#181512] text-xs font-medium cursor-pointer"
-            >
-              ← Back to Orders
-            </button>
-            <div className="flex items-center gap-2">
+    <AdminContext.Provider
+      value={{
+        data,
+        metrics,
+        loading,
+        refreshing,
+        error,
+        lastSyncedAt,
+        refresh,
+        postAction,
+        notify,
+        copyText,
+        openPrintSlip,
+        openMultiplePrintSlips,
+        activeTab,
+        setActiveTab,
+        queryParams,
+        setQueryParam,
+        triggerNewCounter,
+      }}
+    >
+      <OrderSlipModal
+        orders={printingSlipOrders}
+        onClose={() => setPrintingSlipOrders([])}
+      />
+
+      <div
+        className={`admin-ui min-h-screen lg:h-screen lg:overflow-hidden bg-a-canvas text-a-text-1 flex flex-col lg:flex-row ${
+          printingSlipOrders.length > 0 ? "print:hidden" : ""
+        }`}
+      >
+        {/* Left Studio Sidebar — Fixed / Non-Scrolling on Desktop, Regular Weight */}
+        <aside className="w-full lg:w-[248px] lg:h-screen lg:overflow-hidden bg-a-sidebar border-b lg:border-b-0 lg:border-r border-a-border shrink-0 flex flex-col justify-between select-none">
+          <div>
+            <div className="px-4 h-14 border-b border-a-border flex items-center justify-between">
+              <Link href="/" className="flex items-center gap-2">
+                <img
+                  src="/brand/noksha-logo.png"
+                  alt="NOKSHA"
+                  className="h-7 w-auto object-contain"
+                />
+              </Link>
+              <Link
+                href="/"
+                target="_blank"
+                aria-label="Open Live Storefront"
+                className="admin-press p-1.5 rounded-lg text-a-text-3 hover:text-a-text-1 hover:bg-a-subtle"
+              >
+                <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
+              </Link>
+            </div>
+
+            <nav className="p-2.5 flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible">
+              {visibleGroups.map((group) => (
+                <div key={group.group} className="flex lg:flex-col gap-0.5 shrink-0">
+                  <p className="hidden lg:block px-2.5 pb-1 text-[12px] font-normal uppercase tracking-[0.04em] text-a-text-3">
+                    {group.group}
+                  </p>
+                  {group.items.map((item) => {
+                    const active = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={`admin-press relative flex items-center justify-between gap-2 px-2.5 h-[34px] rounded-lg text-[14px] font-normal whitespace-nowrap cursor-pointer ${
+                          active
+                            ? "bg-a-surface text-a-text-1 shadow-[var(--a-shadow-card)] ring-1 ring-a-border"
+                            : "text-a-text-2 hover:text-a-text-1 hover:bg-a-subtle"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5 truncate">
+                          <span className={active ? "text-a-accent" : "text-a-text-3"}>
+                            {item.icon}
+                          </span>
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        {item.badge !== undefined && item.badge > 0 && (
+                          <span
+                            className={`font-num px-2 py-[1px] rounded-full text-[12px] font-normal shrink-0 ${
+                              item.alertBadge
+                                ? "bg-a-danger-bg text-a-danger"
+                                : active
+                                ? "bg-a-sidebar text-a-text-1"
+                                : "bg-a-subtle text-a-text-3"
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-3 border-t border-a-border hidden lg:block space-y-2.5">
+            <div className="flex items-center gap-2.5 px-1">
+              <div className="w-7 h-7 rounded-full bg-a-ink-btn text-a-on-ink flex items-center justify-center text-[12px] font-normal shrink-0">
+                {data.user.name.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-normal text-a-text-1 truncate">{data.user.name}</p>
+                <p className="text-[12px] text-a-text-3 font-normal truncate capitalize">
+                  {data.user.role}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-1.5">
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="admin-press px-4 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer"
+                onClick={refresh}
+                className="admin-press flex-1 py-1.5 px-2.5 rounded-lg bg-a-surface hover:bg-a-subtle text-a-text-1 border border-a-border text-[12px] font-normal flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Printer className="w-3.5 h-3.5 text-[#D8BF90]" />
-                Print / Save as PDF ({printingSlipOrder.id})
+                <RefreshCw className={`w-3 h-3 text-a-text-3 ${refreshing ? "animate-spin" : ""}`} />
+                Sync
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                className="admin-press py-1.5 px-2.5 rounded-lg bg-a-surface hover:bg-a-danger-bg text-a-text-2 hover:text-a-danger border border-a-border text-[12px] font-normal flex items-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3 h-3" />
+                Out
               </button>
             </div>
           </div>
+        </aside>
 
-          {/* Slip Header */}
-          <div className="flex items-start justify-between border-b border-neutral-300 pb-6">
-            <div>
-              <img
-                src="/brand/noksha-logo.png"
-                alt="NOKSHA"
-                className="h-12 w-auto object-contain"
-              />
-              <p className="text-xs text-neutral-500 mt-2">
-                Noksha Online Atelier · Dhaka, Bangladesh · +880 1973-673217
-              </p>
+        <div className="admin-scroll flex-1 min-w-0 lg:h-screen lg:overflow-y-auto">
+          <header className="sticky top-0 z-20 bg-a-canvas/90 backdrop-blur-md border-b border-a-border px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <h1 className="text-[16px] font-semibold tracking-[-0.01em] text-a-text-1 truncate">
+                {navItems.find((n) => n.id === activeTab)?.label}
+              </h1>
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-a-surface border border-a-border text-[12px] text-a-text-3">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    data.supabaseEnabled ? "bg-a-success" : "bg-a-accent"
+                  }`}
+                />
+                {data.supabaseEnabled ? "Supabase Cloud Sync" : "Local SQLite"}
+              </span>
             </div>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-widest text-neutral-500 font-semibold">
-                Invoice &amp; Packing Slip
-              </p>
-              <p className="font-num text-2xl font-bold mt-1">{printingSlipOrder.id}</p>
-              <p className="font-num text-xs text-neutral-500 mt-1">
-                Date: {new Date(printingSlipOrder.createdAt).toLocaleDateString("en-GB")}
-              </p>
-            </div>
-          </div>
-
-          {/* Recipient & Payment Meta */}
-          <div className="grid grid-cols-2 gap-8 py-6 border-b border-neutral-300 text-sm">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
-                Deliver To
-              </p>
-              <p className="font-semibold text-base mt-1">{printingSlipOrder.customerName}</p>
-              <p className="font-num text-neutral-700">{printingSlipOrder.customerPhone}</p>
-              {printingSlipOrder.customerEmail && (
-                <p className="text-neutral-600">{printingSlipOrder.customerEmail}</p>
-              )}
-              <p className="text-neutral-700 mt-1">
-                {printingSlipOrder.address}, {printingSlipOrder.district}
-              </p>
-              {printingSlipOrder.notes && (
-                <p className="text-xs text-neutral-500 mt-1">Note: {printingSlipOrder.notes}</p>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-wider text-neutral-500 font-semibold">
-                Payment &amp; Dispatch
-              </p>
-              <p className="mt-1 font-medium uppercase">
-                Method: {printingSlipOrder.paymentMethod} ({printingSlipOrder.paymentStatus})
-              </p>
-              {printingSlipOrder.trxId && (
-                <p className="font-num text-xs text-neutral-600">TrxID: {printingSlipOrder.trxId}</p>
-              )}
-              <p className="text-xs text-neutral-600 mt-1 uppercase">
-                Order Status: {printingSlipOrder.status}
-              </p>
-              {printingSlipOrder.courierName && (
-                <p className="text-xs text-neutral-700 mt-1">
-                  Courier: {printingSlipOrder.courierName}{" "}
-                  {printingSlipOrder.trackingCode ? `(${printingSlipOrder.trackingCode})` : ""}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Line Items */}
-          <table className="w-full text-sm my-6 border-collapse">
-            <thead>
-              <tr className="border-b border-neutral-300 text-left text-xs uppercase tracking-wider text-neutral-500">
-                <th className="py-2.5">Piece</th>
-                <th className="py-2.5">Finish</th>
-                <th className="py-2.5 text-center">Qty</th>
-                <th className="py-2.5 text-right">Unit Price</th>
-                <th className="py-2.5 text-right">Line Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200">
-              {printingSlipOrder.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="py-3 font-medium">{item.name}</td>
-                  <td className="py-3 text-neutral-600">{item.selectedColor}</td>
-                  <td className="py-3 text-center font-num">{item.quantity}</td>
-                  <td className="py-3 text-right font-num">{formatBDT(item.priceBDT)}</td>
-                  <td className="py-3 text-right font-num font-semibold">
-                    {formatBDT(item.priceBDT * item.quantity)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Totals */}
-          <div className="flex justify-end border-t border-neutral-300 pt-4">
-            <div className="w-64 space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-neutral-600">Subtotal</span>
-                <span className="font-num">{formatBDT(printingSlipOrder.subtotalBDT)}</span>
-              </div>
-              {printingSlipOrder.discountBDT > 0 && (
-                <div className="flex justify-between text-emerald-700">
-                  <span>Courtesy ({printingSlipOrder.promoCode || "Discount"})</span>
-                  <span className="font-num">− {formatBDT(printingSlipOrder.discountBDT)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-neutral-600">Delivery</span>
-                <span className="font-num">
-                  {printingSlipOrder.deliveryBDT === 0
-                    ? "Complimentary"
-                    : formatBDT(printingSlipOrder.deliveryBDT)}
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-neutral-300 pt-2 text-base font-bold">
-                <span>Total (BDT)</span>
-                <span className="font-num">{formatBDT(printingSlipOrder.totalBDT)}</span>
-              </div>
-            </div>
-          </div>
-
-          {printingSlipOrder.giftNote && (
-            <div className="mt-6 p-4 bg-neutral-50 border border-neutral-200 text-xs">
-              <span className="font-semibold uppercase tracking-wider text-neutral-600">
-                Calligraphy Card Message:
-              </span>{" "}
-              <span className="italic">“{printingSlipOrder.giftNote}”</span>
-            </div>
-          )}
-
-          <div className="mt-10 pt-6 border-t border-neutral-200 flex items-center justify-between text-xs text-neutral-500">
-            <span>Wrapped in unbleached kora muslin · Handcrafted in Bangladesh</span>
-            <span>Thank you for collecting Noksha (নকশা)</span>
-          </div>
-        </div>
-      </div>
-    )}
-    <div className={`admin-ui min-h-screen lg:h-screen lg:overflow-hidden bg-[#FAF9F7] text-[#181512] flex flex-col lg:flex-row ${printingSlipOrder ? "print:hidden" : ""}`}>
-      {/* Left Studio Sidebar — Fixed / Non-Scrolling on Desktop, Regular Weight */}
-      <aside className="w-full lg:w-[244px] lg:h-screen lg:overflow-hidden bg-[#F3F1ED] border-b lg:border-b-0 lg:border-r border-black/[0.07] shrink-0 flex flex-col justify-between select-none">
-        <div>
-          {/* Brand Header */}
-          <div className="px-4 h-14 border-b border-black/[0.07] flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <img
-                src="/brand/noksha-logo.png"
-                alt="NOKSHA"
-                className="h-7 w-auto object-contain"
-              />
-            </Link>
-            <Link
-              href="/"
-              target="_blank"
-              className="admin-press p-1.5 rounded-lg text-[#635A52] hover:text-[#181512] hover:bg-black/[0.05]"
-              title="Open Live Storefront"
-            >
-              <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
-            </Link>
-          </div>
-
-          {/* Grouped Navigation */}
-          <nav className="p-2.5 flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible">
-            {visibleGroups.map((group) => (
-              <div key={group.group} className="flex lg:flex-col gap-0.5 shrink-0">
-                <p className="hidden lg:block px-2.5 pb-1 text-[10.5px] font-normal uppercase tracking-[0.08em] text-[#7D7369]">
-                  {group.group}
-                </p>
-                {group.items.map((item) => {
-                  const active = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setActiveTab(item.id)}
-                      className={`admin-press relative flex items-center justify-between gap-2 px-2.5 py-[5px] rounded-lg text-[13px] font-normal whitespace-nowrap cursor-pointer ${
-                        active
-                          ? "bg-white text-[#181512] shadow-[0_1px_2px_rgba(24,21,18,0.06),0_0_0_1px_rgba(24,21,18,0.06)]"
-                          : "text-[#463F39] hover:text-[#181512] hover:bg-black/[0.04]"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2.5 truncate">
-                        <span className={active ? "text-[#B08A4F]" : "text-[#7D7369]"}>
-                          {item.icon}
-                        </span>
-                        <span className="truncate">{item.label}</span>
-                      </span>
-                      {item.badge !== undefined && item.badge > 0 && (
-                        <span
-                          className={`font-num px-1.5 py-[1px] rounded-full text-[10.5px] font-normal shrink-0 ${
-                            item.alertBadge
-                              ? "bg-[#FCECEC] text-[#9B2C2C]"
-                              : active
-                              ? "bg-[#F3F1ED] text-[#181512]"
-                              : "bg-black/[0.05] text-[#635A52]"
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </nav>
-        </div>
-
-        {/* Bottom Profile Strip */}
-        <div className="p-3 border-t border-black/[0.07] hidden lg:block space-y-2.5">
-          <div className="flex items-center gap-2.5 px-1">
-            <div className="w-7 h-7 rounded-full bg-[#181512] text-[#FAF9F7] flex items-center justify-center text-[11px] font-normal shrink-0">
-              {data.user.name.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[12.5px] font-normal text-[#181512] truncate">{data.user.name}</p>
-              </div>
-              <p className="text-[11px] text-[#635A52] font-normal truncate">{data.user.role}</p>
-            </div>
-          </div>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              onClick={fetchDashboard}
-              className="admin-press flex-1 py-1.5 px-2.5 rounded-lg bg-white hover:bg-[#FAF9F7] text-[#181512] border border-black/[0.08] text-[12px] font-normal flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <RefreshCw className="w-3 h-3 text-[#635A52]" />
-              Sync
-            </button>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="admin-press py-1.5 px-2.5 rounded-lg bg-white hover:bg-[#FEF2F2] text-[#635A52] hover:text-[#9B2C2C] border border-black/[0.08] text-[12px] font-normal flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <LogOut className="w-3 h-3" />
-              Out
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area — Independently Scrollable */}
-      <div className="admin-scroll flex-1 min-w-0 lg:h-screen lg:overflow-y-auto">
-        {/* Sticky Frosted Header */}
-        <header className="sticky top-0 z-20 bg-[#FAF9F7]/85 backdrop-blur-md border-b border-black/[0.07] px-5 sm:px-8 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-[15px] font-semibold tracking-[-0.01em] text-[#181512] truncate">
-              {navItems.find((n) => n.id === activeTab)?.label}
-            </h1>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white border border-black/[0.07] text-[11px] text-[#635A52]">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  data.supabaseEnabled ? "bg-[#10B981]" : "bg-[#B08A4F]"
-                }`}
-              />
-              {data.supabaseEnabled ? "Supabase Cloud Sync" : "Local SQLite"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {data.user.role === "owner" && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (
-                    confirm(
-                      "Reset all demo Orders, Customers, Leads, Abandoned Carts, and Analytics counters to 0 so only real visitor and customer data appears?"
-                    )
-                  ) {
+            <div className="flex items-center gap-2">
+              {data.user.role === "owner" && (
+                <button
+                  type="button"
+                  onClick={() =>
                     postAction(
                       { action: "clear_demo_data", includeCatalog: false },
                       "Demo orders, leads & analytics cleared to 0!"
-                    );
+                    )
                   }
-                }}
-                className="admin-press px-3 py-1.5 rounded-lg bg-white hover:bg-[#FEF2F2] text-[#635A52] hover:text-[#9B2C2C] border border-black/[0.09] text-[12px] font-medium hidden md:flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Clear demo orders, leads, abandoned carts & analytics to 0"
+                  className="admin-press px-3 py-1.5 rounded-lg bg-a-surface hover:bg-a-danger-bg text-a-text-2 hover:text-a-danger border border-a-border text-[12px] font-medium hidden md:flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Reset Demo Data
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={copyDailyDigest}
+                className="admin-press px-3 py-1.5 rounded-lg bg-a-ink-btn hover:bg-a-ink-btn-hover text-a-on-ink text-[13px] font-medium flex items-center gap-1.5 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                Reset Demo Data
+                <Copy className="w-3.5 h-3.5 text-a-accent" />
+                <span className="hidden sm:inline">Copy Sales Digest</span>
+                <span className="sm:hidden">Digest</span>
               </button>
-            )}
-            <button
-              type="button"
-              onClick={copyDailyDigest}
-              className="admin-press px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FAF9F7] text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <Copy className="w-3.5 h-3.5 text-[#D8BF90]" />
-              <span className="hidden sm:inline">Copy Sales Digest</span>
-              <span className="sm:hidden">Digest</span>
-            </button>
-            <Link
-              href="/"
-              target="_blank"
-              className="admin-press px-3 py-1.5 rounded-lg bg-white hover:bg-[#F3F1ED] text-[#181512] border border-black/[0.09] text-[12.5px] font-medium flex items-center gap-1.5 shadow-2xs"
-            >
-              Storefront <ExternalLink className="w-3 h-3 text-[#635A52]" />
-            </Link>
-          </div>
-        </header>
-
-        <div key={activeTab} className="admin-surface-enter p-5 sm:p-8 max-w-[1440px] mx-auto space-y-6">
-
-        {/* ───────────────────────── TAB 1: COMMAND OVERVIEW ───────────────────────── */}
-        {activeTab === "overview" && metrics && (
-          <div className="space-y-8">
-            {/* Primary KPI Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KpiCard
-                label="Gross Revenue (BDT)"
-                value={formatBDT(metrics.grossRevenue)}
-                sub={`Est. Net Profit: ${formatBDT(metrics.estProfit)}`}
-                accent="text-[#1B5E55]"
-              />
-              <KpiCard
-                label="Total Orders"
-                value={String(metrics.validOrdersCount)}
-                sub={`${metrics.pendingOrdersCount} awaiting dispatch · AOV ${formatBDT(metrics.aov)}`}
-                accent="text-[#2A1F18]"
-              />
-              <KpiCard
-                label="Visitors & Sessions"
-                value={`${data.analytics.totalVisitors} / ${data.analytics.totalSessions}`}
-                sub={`${data.analytics.totalPageViews} page views · ${metrics.convRate}% conversion`}
-                accent="text-[#7A5417]"
-              />
-              <KpiCard
-                label="Abandoned Carts at Risk"
-                value={formatBDT(metrics.abandonedValue)}
-                sub={`${metrics.unrecoveredCarts.length} unrecovered checkouts`}
-                accent="text-[#8C2F2F]"
-              />
             </div>
+          </header>
 
-            {/* Low-Stock & 1-of-1 Kantha Alerts + Quick Funnel Snapshot */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Inventory Alerts */}
-              <div className={`lg:col-span-6 ${cardCls} p-5 space-y-4`}>
-                <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#8C2F2F] flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    Inventory &amp; 1-of-1 Drop Alerts ({metrics.lowStockProducts.length})
-                  </h2>
+          <div
+            key={activeTab}
+            className="admin-surface-enter p-4 sm:p-6 max-w-[1280px] mx-auto space-y-6"
+          >
+            {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "analytics" && <AnalyticsTab />}
+            {activeTab === "orders" && <OrdersTab />}
+            {activeTab === "cancellations" && <CancellationsTab />}
+            {activeTab === "collections" && <CollectionsTab />}
+            {activeTab === "products" && <ProductsTab />}
+            {activeTab === "customers" && <CustomersTab />}
+            {activeTab === "abandoned" && <AbandonedTab />}
+            {activeTab === "leads" && <LeadsTab />}
+            {activeTab === "promos" && <PromosTab />}
+            {activeTab === "content" && <ContentTab />}
+            {activeTab === "staff" && <StaffTab />}
+            {activeTab === "audit" && <AuditTab />}
+          </div>
+        </div>
+
+        {/* Stacked Toasts */}
+        {toasts.length > 0 && (
+          <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 items-end">
+            {toasts.map((t) => (
+              <div
+                key={t.id}
+                className="admin-toast flex items-center gap-3 px-4 py-2.5 rounded-xl bg-a-ink-btn text-a-on-ink border border-a-border text-[13px] font-normal shadow-[var(--a-shadow-pop)]"
+              >
+                <span
+                  className={`h-2 w-2 rounded-full shrink-0 ${
+                    t.variant === "error"
+                      ? "bg-a-danger"
+                      : t.variant === "info"
+                      ? "bg-a-accent"
+                      : "bg-a-success"
+                  }`}
+                />
+                <span>{t.message}</span>
+                {t.action && (
                   <button
                     type="button"
-                    onClick={() => setActiveTab("products")}
-                    className="text-[13px] font-bold text-[#2A1F18] hover:underline cursor-pointer"
+                    onClick={() => {
+                      t.action?.onClick();
+                      setToasts((prev) => prev.filter((item) => item.id !== t.id));
+                    }}
+                    className="admin-press ml-1 px-2.5 py-0.5 rounded-md bg-a-surface/15 hover:bg-a-surface/25 text-a-on-ink text-[12px] font-medium cursor-pointer"
                   >
-                    Manage Catalog →
+                    {t.action.label}
                   </button>
-                </div>
-
-                <div className="divide-y divide-black/[0.06] text-[13px]">
-                  {metrics.lowStockProducts.map((p) => (
-                    <div key={p.id} className="py-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={p.image}
-                          alt=""
-                          className="w-11 h-13 rounded object-cover shrink-0 border border-black/[0.07]"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-bold text-[#1E1915] truncate">{p.name}</p>
-                          <p className="text-[#1E1915] font-medium">
-                            {p.sku} ·{" "}
-                            {p.collectionId
-                              ? `${p.dropNumber || "Drop"} · 1-of-1 Exclusive${
-                                  p.acquiredBy ? ` (Acquired by ${p.acquiredBy})` : ""
-                                }`
-                              : "Regular Store Edition"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span
-                          className={`px-2.5 py-1 rounded font-bold text-[11px] ${
-                            p.status === "sold"
-                              ? "bg-[#FCECEC] text-[#8C2F2F] border border-[#E5B8B8]"
-                              : "bg-[#FDF3E1] text-[#7A5417] border border-[#E6C98A]"
-                          }`}
-                        >
-                          {p.status === "sold"
-                            ? p.collectionId
-                              ? p.acquiredBy
-                                ? `ACQUIRED · ${p.acquiredBy}`
-                                : "ACQUIRED (1 OF 1)"
-                              : "SOLD OUT"
-                            : `Stock: ${p.stockQty}`}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Where Visitors Exit Snapshot */}
-              <div className={`lg:col-span-6 ${cardCls} p-5 space-y-4`}>
-                <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#2A1F18] flex items-center gap-2">
-                    <TrendingDown className="w-4 h-4 text-[#8C2F2F]" />
-                    Customer Journey &amp; Exit Drop-Off Snapshot
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("analytics")}
-                    className="text-[13px] font-bold text-[#2A1F18] hover:underline cursor-pointer"
-                  >
-                    Full Funnel &amp; Exit Report →
-                  </button>
-                </div>
-
-                <div className="space-y-3 text-[13px]">
-                  {data.analytics.funnel.map((f) => (
-                    <div key={f.key} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[#1E1915] font-bold">{f.label}</span>
-                        <span className="font-num text-[#1E1915] font-medium">
-                          <strong className="text-[#1E1915]">{f.sessions}</strong> sessions ({f.pctOfTotal}%) ·{" "}
-                          <span className="text-[#8C2F2F] font-bold">{f.exitsHere} exited here</span>
-                        </span>
-                      </div>
-                      <div className="h-2.5 bg-[#EFE8DC] rounded-full overflow-hidden border border-black/[0.07]">
-                        <div
-                          className="h-full bg-[#B08A4F] rounded-full"
-                          style={{ width: `${Math.max(4, f.pctOfTotal)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Orders Table */}
-            <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-5 border-b border-black/[0.07] flex items-center justify-between bg-[#FAF9F7]">
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
-                  Recent Orders
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("orders")}
-                  className="text-[13px] font-bold text-[#8C2F2F] hover:underline cursor-pointer"
-                >
-                  Open Full Order Pipeline →
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px] text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className={thCls}>Order ID</th>
-                      <th className={thCls}>Customer</th>
-                      <th className={thCls}>District</th>
-                      <th className={thCls}>Payment</th>
-                      <th className={thCls}>Total</th>
-                      <th className={thCls}>Status</th>
-                      <th className={`${thCls} text-right`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/[0.06]">
-                    {data.orders.slice(0, 6).map((o) => (
-                      <tr key={o.id} className="admin-row-hover">
-                        <td className="py-3.5 px-4 font-num font-bold text-[#2A1F18]">{o.id}</td>
-                        <td className="py-3.5 px-4">
-                          <p className="font-bold text-[#1E1915]">{o.customerName}</p>
-                          <p className="font-num text-[#1E1915] font-medium">{o.customerPhone}</p>
-                        </td>
-                        <td className="py-3.5 px-4 font-medium text-[#1E1915]">{o.district}</td>
-                        <td className="py-3.5 px-4 uppercase font-semibold text-[#1E1915]">
-                          {o.paymentMethod} ({o.paymentStatus})
-                        </td>
-                        <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                          {formatBDT(o.totalBDT)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={o.status} />
-                        </td>
-                        <td className="py-3.5 px-4 text-right space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveTab("orders");
-                              openOrderInspector(o);
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold cursor-pointer"
-                          >
-                            Manage
-                          </button>
-                          <Link
-                            href={`/admin/invoice/${o.id}`}
-                            className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] font-bold inline-block"
-                          >
-                            Invoice
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 2: ANALYTICS, FUNNEL & EXIT STEPS ───────────────────────── */}
-        {activeTab === "analytics" && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KpiCard
-                label="Unique Visitors"
-                value={String(data.analytics.totalVisitors)}
-                sub="Tracked via persistent visitor ID"
-                accent="text-[#2A1F18]"
-              />
-              <KpiCard
-                label="Total Sessions"
-                value={String(data.analytics.totalSessions)}
-                sub="Across desktop & mobile"
-                accent="text-[#7A5417]"
-              />
-              <KpiCard
-                label="Total Page & Piece Views"
-                value={String(data.analytics.totalPageViews)}
-                sub={`Avg. Time on Page: ${data.analytics.avgDurationSec}s`}
-                accent="text-[#1B5E55]"
-              />
-              <KpiCard
-                label="Top Exit Step"
-                value={
-                  [...data.analytics.funnel].sort((a, b) => b.exitsHere - a.exitsHere)[0]?.key ??
-                  "product_detail"
-                }
-                sub="Highest single drop-off stage"
-                accent="text-[#8C2F2F]"
-              />
-            </div>
-
-            {/* Step-by-Step Customer Funnel & Exit Table */}
-            <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-5 border-b border-black/[0.07] bg-[#FAF9F7]">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#1E1915]">
-                  Full Customer Journey Funnel &amp; Step-by-Step Exit Analysis
-                </h2>
-                <p className="text-[13px] text-[#1E1915] font-medium mt-0.5">
-                  Tracks how many sessions reach each step, step-to-step conversion, and from which step customers exit the site.
-                </p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px] text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className={thCls}>Funnel Stage</th>
-                      <th className={thCls}>Sessions Reached</th>
-                      <th className={thCls}>% of Total Traffic</th>
-                      <th className={thCls}>Step Conversion</th>
-                      <th className={thCls}>Step Drop-off %</th>
-                      <th className={`${thCls} text-right`}>Exited Site at This Step</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/[0.06]">
-                    {data.analytics.funnel.map((f) => (
-                      <tr key={f.key} className="admin-row-hover">
-                        <td className="py-3.5 px-4 font-bold text-[#1E1915]">{f.label}</td>
-                        <td className="py-3.5 px-4 font-num font-bold text-[#2A1F18]">
-                          {f.sessions}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-28 h-2.5 bg-[#EFE8DC] rounded-full overflow-hidden border border-black/[0.07]">
-                              <div
-                                className="h-full bg-[#B08A4F]"
-                                style={{ width: `${Math.max(4, f.pctOfTotal)}%` }}
-                              />
-                            </div>
-                            <span className="font-num font-bold text-[#1E1915]">
-                              {f.pctOfTotal}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-num text-[#1B5E55] font-bold">
-                          {f.stepConversionPct}%
-                        </td>
-                        <td className="py-3.5 px-4 font-num text-[#8C2F2F] font-semibold">
-                          {f.dropOffPct}%
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-num font-bold text-[#8C2F2F]">
-                          {f.exitsHere} exits
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Most Visited Pages & Acquisition Channels */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Top Pages & Exit Rates */}
-              <div className={`lg:col-span-6 ${cardCls} overflow-hidden`}>
-                <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7]">
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
-                    Most Visited Pages &amp; Page Exit Rates
-                  </h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[13px] text-left border-collapse">
-                    <thead>
-                      <tr>
-                        <th className={thCls}>Page Path</th>
-                        <th className={thCls}>Views</th>
-                        <th className={thCls}>Visitors</th>
-                        <th className={thCls}>Avg Time</th>
-                        <th className={`${thCls} text-right`}>Exit Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black/[0.06]">
-                      {data.analytics.topPages.map((pg) => (
-                        <tr key={pg.path} className="admin-row-hover">
-                          <td className="py-3 px-4 font-mono font-bold text-[#2A1F18]">
-                            {pg.path}
-                          </td>
-                          <td className="py-3 px-4 font-num font-bold text-[#1E1915]">
-                            {pg.views}
-                          </td>
-                          <td className="py-3 px-4 font-num font-medium text-[#1E1915]">
-                            {pg.uniqueVisitors}
-                          </td>
-                          <td className="py-3 px-4 font-num font-medium text-[#1E1915]">
-                            {pg.avgDurationSec}s
-                          </td>
-                          <td className="py-3 px-4 text-right font-num text-[#8C2F2F] font-bold">
-                            {pg.exitRate}% ({pg.exits})
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Traffic Sources & Device Split */}
-              <div className="lg:col-span-6 space-y-6">
-                <div className={`${cardCls} p-5 space-y-4`}>
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] border-b border-black/[0.07] pb-2.5">
-                    Acquisition Channels &amp; Devices
-                  </h2>
-                  <div className="grid grid-cols-2 gap-6 text-[13px]">
-                    <div>
-                      <p className="text-[#1E1915] uppercase font-bold mb-2">Traffic Referrers</p>
-                      <div className="space-y-2">
-                        {data.analytics.referrers.map((r) => (
-                          <div
-                            key={r.referrer}
-                            className="flex justify-between border-b border-black/[0.07] pb-1.5"
-                          >
-                            <span className="text-[#1E1915] font-bold">{r.referrer}</span>
-                            <span className="font-num text-[#7A5417] font-bold">
-                              {r.sessions} sessions
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[#1E1915] uppercase font-bold mb-2">Device Breakdown</p>
-                      <div className="space-y-2">
-                        {data.analytics.devices.map((d) => (
-                          <div
-                            key={d.device}
-                            className="flex justify-between border-b border-black/[0.07] pb-1.5"
-                          >
-                            <span className="text-[#1E1915] uppercase font-bold">{d.device}</span>
-                            <span className="font-num text-[#1B5E55] font-bold">
-                              {d.sessions} sessions
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Daily Traffic Trend */}
-                <div className={`${cardCls} overflow-hidden`}>
-                  <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7]">
-                    <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
-                      Daily Traffic &amp; Page Views Trend
-                    </h2>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[13px] text-left border-collapse">
-                      <thead>
-                        <tr>
-                          <th className={thCls}>Date</th>
-                          <th className={thCls}>Unique Visitors</th>
-                          <th className={thCls}>Sessions</th>
-                          <th className={`${thCls} text-right`}>Page Views</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/[0.06]">
-                        {data.analytics.daily.map((d) => (
-                          <tr key={d.day} className="admin-row-hover">
-                            <td className="py-2.5 px-4 font-num font-semibold text-[#1E1915]">
-                              {d.day}
-                            </td>
-                            <td className="py-2.5 px-4 font-num font-bold text-[#1E1915]">
-                              {d.visitors}
-                            </td>
-                            <td className="py-2.5 px-4 font-num font-bold text-[#7A5417]">
-                              {d.sessions}
-                            </td>
-                            <td className="py-2.5 px-4 font-num text-right font-bold text-[#1B5E55]">
-                              {d.page_views}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Product Performance Matrix */}
-            <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-5 border-b border-black/[0.07] bg-[#FAF9F7] flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#1E1915]">
-                    Product Conversion &amp; Interest Matrix
-                  </h2>
-                  <p className="text-[13px] text-[#1E1915] font-medium">
-                    Ranked by views, bag additions, view-to-bag rate, orders, and revenue generated.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    downloadCsv(
-                      "noksha-product-analytics.csv",
-                      [
-                        "SKU",
-                        "Name",
-                        "Category",
-                        "Price BDT",
-                        "Stock",
-                        "Views",
-                        "Added to Bag",
-                        "Orders",
-                        "Revenue BDT",
-                      ],
-                      data.products.map((p) => [
-                        p.sku,
-                        p.name,
-                        p.category,
-                        p.priceBDT,
-                        p.stockQty,
-                        p.viewsCount,
-                        p.addToBagCount,
-                        p.ordersCount,
-                        p.ordersCount * p.priceBDT,
-                      ])
-                    )
-                  }
-                  className="px-3.5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export CSV
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px] text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className={thCls}>Piece</th>
-                      <th className={thCls}>Category</th>
-                      <th className={thCls}>Price</th>
-                      <th className={thCls}>Page Views</th>
-                      <th className={thCls}>Added to Bag</th>
-                      <th className={thCls}>View → Bag %</th>
-                      <th className={thCls}>Orders</th>
-                      <th className={`${thCls} text-right`}>Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/[0.06]">
-                    {[...data.products]
-                      .sort((a, b) => b.viewsCount - a.viewsCount)
-                      .map((p) => {
-                        const bagRate =
-                          p.viewsCount > 0
-                            ? ((p.addToBagCount / p.viewsCount) * 100).toFixed(1)
-                            : "0.0";
-                        return (
-                          <tr key={p.id} className="admin-row-hover">
-                            <td className="py-3.5 px-4">
-                              <p className="font-bold text-[#1E1915]">{p.name}</p>
-                              <p className="font-mono text-[11px] text-[#1E1915] font-semibold">
-                                {p.sku}
-                              </p>
-                            </td>
-                            <td className="py-3.5 px-4 font-medium text-[#1E1915]">{p.category}</td>
-                            <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                              {formatBDT(p.priceBDT)}
-                            </td>
-                            <td className="py-3.5 px-4 font-num font-bold text-[#2A1F18]">
-                              {p.viewsCount}
-                            </td>
-                            <td className="py-3.5 px-4 font-num font-bold text-[#7A5417]">
-                              {p.addToBagCount}
-                            </td>
-                            <td className="py-3.5 px-4 font-num font-semibold text-[#1E1915]">
-                              {bagRate}%
-                            </td>
-                            <td className="py-3.5 px-4 font-num font-bold text-[#1B5E55]">
-                              {p.ordersCount}
-                            </td>
-                            <td className="py-3.5 px-4 text-right font-num font-bold text-[#1E1915]">
-                              {formatBDT(p.ordersCount * p.priceBDT)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 3: ORDERS PIPELINE ───────────────────────── */}
-        {activeTab === "orders" && (
-          <div className="space-y-6">
-            {/* Filter & Search Bar */}
-            <div className={`flex flex-wrap items-center justify-between gap-4 ${cardCls} p-4`}>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {["all", ...ORDER_STATUSES].map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setOrderFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg text-[13px] font-bold uppercase cursor-pointer ${
-                      orderFilter === st
-                        ? "bg-[#181512] text-[#FBF8F3]"
-                        : "bg-[#F3F1ED] text-[#2A1F18] hover:bg-[#E9E6E0]"
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#1E1915] absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={orderSearch}
-                    onChange={(e) => setOrderSearch(e.target.value)}
-                    placeholder="Search ID, name, phone, district…"
-                    className="pl-8 pr-3 py-1.5 bg-white border border-black/[0.10] rounded-lg text-[13px] text-[#1E1915] font-medium focus:outline-none focus:border-[#2A1F18]"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    downloadCsv(
-                      "noksha-orders.csv",
-                      [
-                        "Order ID",
-                        "Date",
-                        "Customer",
-                        "Phone",
-                        "District",
-                        "Address",
-                        "Payment Method",
-                        "Payment Status",
-                        "TrxID",
-                        "Total BDT",
-                        "Order Status",
-                        "Courier",
-                        "Tracking",
-                      ],
-                      filteredOrders.map((o) => [
-                        o.id,
-                        o.createdAt,
-                        o.customerName,
-                        o.customerPhone,
-                        o.district,
-                        o.address,
-                        o.paymentMethod,
-                        o.paymentStatus,
-                        o.trxId,
-                        o.totalBDT,
-                        o.status,
-                        o.courierName,
-                        o.trackingCode,
-                      ])
-                    )
-                  }
-                  className="px-3.5 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export CSV
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Orders List */}
-              <div className={`lg:col-span-7 ${cardCls} overflow-hidden`}>
-                <table className="w-full text-[13px] text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className={thCls}>Order</th>
-                      <th className={thCls}>Customer</th>
-                      <th className={thCls}>Payment</th>
-                      <th className={thCls}>Total</th>
-                      <th className={thCls}>Status</th>
-                      <th className={`${thCls} text-right`}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/[0.06]">
-                    {filteredOrders.map((o) => (
-                      <tr
-                        key={o.id}
-                        onClick={() => openOrderInspector(o)}
-                        className={`cursor-pointer admin-row-hover ${
-                          selectedOrder?.id === o.id ? "bg-[#F3F1ED]" : ""
-                        }`}
-                      >
-                        <td className="py-3.5 px-4">
-                          <p className="font-num font-bold text-[#2A1F18]">{o.id}</p>
-                          <p className="font-num text-[11px] text-[#1E1915] font-medium">
-                            {new Date(o.createdAt).toLocaleDateString("en-GB")}
-                          </p>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <p className="font-bold text-[#1E1915]">{o.customerName}</p>
-                          <p className="font-num text-[#1E1915] font-medium">
-                            {o.customerPhone} · {o.district}
-                          </p>
-                        </td>
-                        <td className="py-3.5 px-4 uppercase">
-                          <span className="font-bold text-[#1E1915]">{o.paymentMethod}</span>
-                          <span
-                            className={`block text-[10px] font-bold ${
-                              o.paymentStatus === "verified" ? "text-[#1B5E55]" : "text-[#7A5417]"
-                            }`}
-                          >
-                            {o.paymentStatus}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                          {formatBDT(o.totalBDT)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={o.status} />
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPrintSlip(o);
-                            }}
-                            className="admin-press inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] font-medium cursor-pointer"
-                            title="Print Invoice / Packing Slip"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            Slip
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Order Inspector & Pipeline Updater */}
-              <div className={`lg:col-span-5 ${cardCls} p-5 space-y-5`}>
-                {!selectedOrder ? (
-                  <p className="text-[13px] text-[#1E1915] font-medium py-12 text-center">
-                    Click any order on the left to inspect items, verify bKash TrxID, update pipeline status, or print its packing slip.
-                  </p>
-                ) : (
-                  <>
-                    <div className="flex items-start justify-between border-b border-black/[0.07] pb-4">
-                      <div>
-                        <span className="text-[11px] uppercase tracking-widest text-[#8C6528] font-bold">
-                          Order Inspector
-                        </span>
-                        <h3 className="font-num text-2xl font-bold text-[#1E1915] mt-0.5">
-                          {selectedOrder.id}
-                        </h3>
-                        <p className="text-[13px] text-[#1E1915] font-semibold">
-                          {selectedOrder.customerName} ·{" "}
-                          <span className="font-num">{selectedOrder.customerPhone}</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={toBdWhatsApp(
-                            selectedOrder.customerPhone,
-                            `আসসালামু আলাইকুম ${selectedOrder.customerName}, this is Noksha Client Care regarding your order ${selectedOrder.id} (${formatBDT(
-                              selectedOrder.totalBDT
-                            )}).`
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 rounded-lg bg-[#1B5E55] hover:bg-[#144740] text-white text-[13px] font-bold flex items-center gap-1"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          WhatsApp
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => openPrintSlip(selectedOrder)}
-                          className="admin-press px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#1E1915] border border-black/[0.10] text-[13px] font-medium flex items-center gap-1 cursor-pointer"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                          Print Slip
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Items */}
-                    <div className="space-y-2 text-[13px]">
-                      <p className="uppercase text-[#1E1915] font-bold">Ordered Pieces</p>
-                      {selectedOrder.items.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between bg-[#FAF9F7] p-3 rounded-lg border border-black/[0.07]"
-                        >
-                          <div>
-                            <p className="font-bold text-[#1E1915]">
-                              {item.name} × <span className="font-num">{item.quantity}</span>
-                            </p>
-                            <p className="text-[#1E1915] font-medium">{item.selectedColor}</p>
-                          </div>
-                          <span className="font-num font-bold text-[#1E1915]">
-                            {formatBDT(item.priceBDT * item.quantity)}
-                          </span>
-                        </div>
-                      ))}
-                      {selectedOrder.giftNote && (
-                        <p className="p-3 rounded-lg bg-[#FDF3E1] border border-[#E6C98A] text-[#7A5417] font-medium">
-                          <strong>Calligraphy Card:</strong> “{selectedOrder.giftNote}”
-                        </p>
-                      )}
-                      <p className="text-[#1E1915] pt-1">
-                        <strong>Delivery Address:</strong> {selectedOrder.address},{" "}
-                        {selectedOrder.district}
-                      </p>
-                      {selectedOrder.trxId && (
-                        <p className="text-[#1B5E55] font-num font-bold">
-                          <strong>bKash/Nagad TrxID:</strong> {selectedOrder.trxId}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Pipeline Form */}
-                    <div className="space-y-3 border-t border-black/[0.07] pt-4 text-[13px]">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block font-bold text-[#2A1F18] mb-1">
-                            Order Pipeline Stage
-                          </label>
-                          <select
-                            value={orderStatusDraft}
-                            onChange={(e) => setOrderStatusDraft(e.target.value)}
-                            className={`${inputCls} uppercase`}
-                          >
-                            {ORDER_STATUSES.map((st) => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block font-bold text-[#2A1F18] mb-1">
-                            Payment Status
-                          </label>
-                          <select
-                            value={paymentStatusDraft}
-                            onChange={(e) => setPaymentStatusDraft(e.target.value)}
-                            className={`${inputCls} uppercase`}
-                          >
-                            <option value="pending">pending</option>
-                            <option value="verified">verified</option>
-                            <option value="refunded">refunded</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block font-bold text-[#2A1F18] mb-1">Courier Name</label>
-                          <input
-                            type="text"
-                            value={courierDraft}
-                            onChange={(e) => setCourierDraft(e.target.value)}
-                            placeholder="e.g. Pathao Prime / Steadfast"
-                            className={inputCls}
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-[#2A1F18] mb-1">Tracking Code</label>
-                          <input
-                            type="text"
-                            value={trackingDraft}
-                            onChange={(e) => setTrackingDraft(e.target.value)}
-                            placeholder="e.g. PTH-BD-99281"
-                            className={inputCls}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block font-bold text-[#2A1F18] mb-1">
-                          Status Transition Note (logged to timeline)
-                        </label>
-                        <input
-                          type="text"
-                          value={timelineNoteDraft}
-                          onChange={(e) => setTimelineNoteDraft(e.target.value)}
-                          placeholder="e.g. Dispatched with muslin wrap & calligraphy card"
-                          className={inputCls}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block font-bold text-[#2A1F18] mb-1">
-                          Internal Staff Notes
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={internalNoteDraft}
-                          onChange={(e) => setInternalNoteDraft(e.target.value)}
-                          className={inputCls}
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const ok = await postAction(
-                            {
-                              action: "update_order",
-                              id: selectedOrder.id,
-                              status: orderStatusDraft,
-                              paymentStatus: paymentStatusDraft,
-                              courierName: courierDraft,
-                              trackingCode: trackingDraft,
-                              internalNotes: internalNoteDraft,
-                              note: timelineNoteDraft,
-                            },
-                            `Order ${selectedOrder.id} updated`
-                          );
-                          if (ok) {
-                            setSelectedOrder((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    status: orderStatusDraft,
-                                    paymentStatus: paymentStatusDraft,
-                                    courierName: courierDraft,
-                                    trackingCode: trackingDraft,
-                                    internalNotes: internalNoteDraft,
-                                  }
-                                : null
-                            );
-                          }
-                        }}
-                        className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
-                      >
-                        Save Order &amp; Pipeline Update
-                      </button>
-                    </div>
-
-                    {/* Timeline */}
-                    <div className="border-t border-black/[0.07] pt-4 space-y-2 text-[13px]">
-                      <p className="uppercase text-[#1E1915] font-bold">Order Status Timeline</p>
-                      <div className="space-y-2">
-                        {selectedOrder.timeline.map((t, i) => (
-                          <div
-                            key={i}
-                            className="flex items-start justify-between gap-2 text-[#1E1915]"
-                          >
-                            <div>
-                              <span className="uppercase font-bold text-[#8C2F2F]">{t.status}</span> —{" "}
-                              <span className="font-medium">{t.note}</span>{" "}
-                              <span className="text-[#1E1915]">({t.by})</span>
-                            </div>
-                            <span className="font-num text-[11px] text-[#1E1915] shrink-0">
-                              {new Date(t.at).toLocaleString("en-GB")}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
                 )}
               </div>
-            </div>
+            ))}
           </div>
         )}
-
-        {/* ───────────────────────── TAB 3A: CANCELLATION REQUESTS ───────────────────────── */}
-        {activeTab === "cancellations" && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-[13px] text-[#14110F] font-medium">
-                Review customer order cancellation requests submitted before shipment. Approving a cancellation marks the order as <strong>Cancelled</strong> and automatically restores product stock.
-              </p>
-            </div>
-
-            {(() => {
-              const pendingCancels = data.orders.filter((o) => o.cancellationRequested);
-              const cancelledHistory = data.orders.filter((o) => o.status === "cancelled" && !o.cancellationRequested);
-
-              return (
-                <div className="space-y-8">
-                  <div className={`${cardCls} overflow-hidden`}>
-                    <div className="px-5 py-3.5 bg-[#F3F1ED] border-b border-black/[0.08] flex items-center justify-between">
-                      <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#8C2F2F]">
-                        Pending Cancellation Requests ({pendingCancels.length})
-                      </h2>
-                    </div>
-
-                    {pendingCancels.length === 0 ? (
-                      <div className="p-8 text-center text-[13px] text-[#2D2620] font-medium">
-                        No pending cancellation requests right now.
-                      </div>
-                    ) : (
-                      <table className="w-full text-[13px] text-left border-collapse">
-                        <thead>
-                          <tr>
-                            <th className={thCls}>Order</th>
-                            <th className={thCls}>Customer</th>
-                            <th className={thCls}>Pieces &amp; Total</th>
-                            <th className={thCls}>Current Stage</th>
-                            <th className={thCls}>Customer Reason</th>
-                            <th className={`${thCls} text-right`}>Decision</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/[0.06]">
-                          {pendingCancels.map((o) => (
-                            <tr key={o.id} className="admin-row-hover">
-                              <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
-                                <p>{o.id}</p>
-                                <p className="text-[11px] font-normal text-[#2D2620]">
-                                  {new Date(o.createdAt).toLocaleDateString("en-GB")}
-                                </p>
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <p className="font-bold text-[#14110F]">{o.customerName}</p>
-                                <p className="font-num text-[#1E1915]">{o.customerPhone}</p>
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <p className="text-[#14110F] font-medium">
-                                  {o.items.map((i) => `${i.name} ×${i.quantity}`).join(", ")}
-                                </p>
-                                <p className="font-num font-bold text-[#14110F] mt-0.5">
-                                  {formatBDT(o.totalBDT)} ({o.paymentMethod.toUpperCase()})
-                                </p>
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <StatusBadge status={o.status} />
-                              </td>
-                              <td className="py-3.5 px-4 max-w-xs">
-                                <p className="text-[#8C2F2F] font-medium">
-                                  “{o.cancellationReason || "Requested by customer"}”
-                                </p>
-                              </td>
-                              <td className="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
-                                <a
-                                  href={toBdWhatsApp(
-                                    o.customerPhone,
-                                    `আসসালামু আলাইকুম ${o.customerName}, we received your cancellation request for Noksha order ${o.id}.`
-                                  )}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#1B5E55] hover:bg-[#144740] text-white text-[12px] font-bold inline-flex items-center gap-1"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" />
-                                  WhatsApp
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (confirm(`Approve cancellation for order ${o.id} and restore stock?`)) {
-                                      postAction(
-                                        { action: "resolve_cancellation", id: o.id, decision: "approve" },
-                                        `Approved cancellation for ${o.id}`
-                                      );
-                                    }
-                                  }}
-                                  className="px-3 py-1.5 rounded-lg bg-[#8C2F2F] hover:bg-[#702222] text-white text-[12px] font-bold cursor-pointer"
-                                >
-                                  Approve &amp; Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    postAction(
-                                      { action: "resolve_cancellation", id: o.id, decision: "dismiss" },
-                                      `Dismissed cancellation request for ${o.id}`
-                                    )
-                                  }
-                                  className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#14110F] border border-black/[0.12] text-[12px] font-bold cursor-pointer"
-                                >
-                                  Dismiss
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  {cancelledHistory.length > 0 && (
-                    <div className={`${cardCls} overflow-hidden`}>
-                      <div className="px-5 py-3.5 bg-[#F3F1ED] border-b border-black/[0.08]">
-                        <h3 className="text-[13px] font-bold uppercase tracking-wider text-[#14110F]">
-                          Cancelled Orders History ({cancelledHistory.length})
-                        </h3>
-                      </div>
-                      <table className="w-full text-[13px] text-left border-collapse">
-                        <thead>
-                          <tr>
-                            <th className={thCls}>Order</th>
-                            <th className={thCls}>Customer</th>
-                            <th className={thCls}>Total</th>
-                            <th className={thCls}>Reason</th>
-                            <th className={thCls}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/[0.06]">
-                          {cancelledHistory.map((o) => (
-                            <tr key={o.id} className="admin-row-hover">
-                              <td className="py-3 px-4 font-num font-bold text-[#14110F]">{o.id}</td>
-                              <td className="py-3 px-4">
-                                <span className="font-bold text-[#14110F]">{o.customerName}</span> ·{" "}
-                                <span className="font-num text-[#2D2620]">{o.customerPhone}</span>
-                              </td>
-                              <td className="py-3 px-4 font-num font-bold text-[#14110F]">
-                                {formatBDT(o.totalBDT)}
-                              </td>
-                              <td className="py-3 px-4 text-[#2D2620]">
-                                {o.cancellationReason || "Cancelled by staff"}
-                              </td>
-                              <td className="py-3 px-4">
-                                <StatusBadge status="cancelled" />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 3B: EXCLUSIVE DROPS (COLLECTIONS) & STORE CATEGORIES ───────────────────────── */}
-        {activeTab === "collections" && (
-          <div className="space-y-10">
-            {/* PART A: EXCLUSIVE COLLECTION DROPS (Drop 01, Drop 02, Drop 03...) */}
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold text-[#14110F]">
-                    1. Exclusive Collections &amp; Numbered Drops (1-of-1 Pieces)
-                  </h2>
-                  <p className="text-[13px] text-[#1E1915] font-medium mt-0.5">
-                    Every Collection is an exclusive Drop (<span className="font-num">Drop 01, Drop 02, Drop 03</span>, etc.) where all pieces are strictly <span className="font-num">1 of 1</span>. Control when each Drop is Upcoming, Open for Pre-Booking, or Live.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditingCollection({
-                      ...EMPTY_COLLECTION,
-                      dropNumber: `Drop 0${data.collections.length + 1}`,
-                      shortName: `Drop 0${data.collections.length + 1}`,
-                      sortOrder: data.collections.length + 1,
-                    })
-                  }
-                  className="px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <Plus className="w-4 h-4 text-[#D8BF90]" />
-                  Create New Exclusive Drop
-                </button>
-              </div>
-
-              {editingCollection && (
-                <div className="bg-white admin-surface-enter border border-black/[0.12] rounded-xl p-6 space-y-5 shadow-lg">
-                  <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
-                    <h3 className="text-base font-bold text-[#1E1915]">
-                      {editingCollection.id
-                        ? `Edit Exclusive Drop: ${editingCollection.dropNumber || editingCollection.shortName} — ${editingCollection.title}`
-                        : "Create New Exclusive Drop Collection"}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setEditingCollection(null)}
-                      className="p-1 text-[#1E1915] hover:opacity-70 cursor-pointer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[13px]">
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Drop Number (e.g. Drop 01, Drop 02, Drop 03) *
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.dropNumber || editingCollection.shortName || ""}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            dropNumber: e.target.value,
-                            shortName: e.target.value,
-                          })
-                        }
-                        placeholder="e.g. Drop 04"
-                        className={`${inputCls} font-num`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Collection / Drop Title *
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.title || ""}
-                        onChange={(e) =>
-                          setEditingCollection({ ...editingCollection, title: e.target.value })
-                        }
-                        placeholder="e.g. Winter Nakshi & Brass Collector Drop"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Bengali Title (বাংলা নাম) *
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.bengaliTitle || ""}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            bengaliTitle: e.target.value,
-                          })
-                        }
-                        placeholder="e.g. ড্রপ ০৪ — শীতের নকশা"
-                        className={inputCls}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Drop Release Stage / Availability Control *
-                      </label>
-                      <select
-                        value={editingCollection.dropStatus || "live"}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            dropStatus: e.target.value as DropStatus,
-                          })
-                        }
-                        className={inputCls}
-                      >
-                        <option value="upcoming">Upcoming Preview (Not Yet Open)</option>
-                        <option value="prebooking">Open for Pre-Booking (Reservation Only)</option>
-                        <option value="live">Live Drop (Open to Acquire Immediately)</option>
-                        <option value="archived">Archived Drop (Completed Release)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Release Date / Timing Label
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.releaseDate || ""}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            releaseDate: e.target.value,
-                          })
-                        }
-                        placeholder="e.g. Live Now / Pre-Booking Open / Dec 15, 2026"
-                        className={`${inputCls} font-num`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Poetic Subtitle
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.subtitle || ""}
-                        onChange={(e) =>
-                          setEditingCollection({ ...editingCollection, subtitle: e.target.value })
-                        }
-                        placeholder="e.g. One-of-One Collector Pieces"
-                        className={inputCls}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Making Time Metric
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.craftMetric || ""}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            craftMetric: e.target.value,
-                          })
-                        }
-                        placeholder="e.g. 90–280 Hours Hand-Stitched & Carved"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Price Range (BDT ৳)
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCollection.priceRange || ""}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            priceRange: e.target.value,
-                          })
-                        }
-                        placeholder="e.g. ৳ 6,800 – ৳ 19,500"
-                        className={`${inputCls} font-num`}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-bold text-[#2A1F18] mb-1">Sort Order</label>
-                        <input
-                          type="number"
-                          value={editingCollection.sortOrder ?? 1}
-                          onChange={(e) =>
-                            setEditingCollection({
-                              ...editingCollection,
-                              sortOrder: Number(e.target.value),
-                            })
-                          }
-                          className={`${inputCls} font-num`}
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-[#2A1F18] mb-1">Accent Hex</label>
-                        <input
-                          type="text"
-                          value={editingCollection.accentHex || "#B08A4F"}
-                          onChange={(e) =>
-                            setEditingCollection({
-                              ...editingCollection,
-                              accentHex: e.target.value,
-                            })
-                          }
-                          className={inputCls}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Banner & Hero Image Upload */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF9F7] p-4 rounded-xl border border-black/[0.07] text-[13px]">
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={editingCollection.heroImage || "/images/hero-courtyard.png"}
-                        alt="Card Preview"
-                        className="w-20 h-24 object-cover rounded border border-black/[0.10] shrink-0"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <label className="block font-bold text-[#2A1F18]">
-                          Drop Card Image (4:5 Portrait)
-                        </label>
-                        <input
-                          type="text"
-                          value={editingCollection.heroImage || ""}
-                          onChange={(e) =>
-                            setEditingCollection({
-                              ...editingCollection,
-                              heroImage: e.target.value,
-                            })
-                          }
-                          className={inputCls}
-                        />
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] cursor-pointer text-xs font-bold">
-                          <Upload className="w-3.5 h-3.5 text-[#D8BF90]" />
-                          {uploadingImg ? "Uploading…" : "Upload Card Image"}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleCollectionImageUpload(e, "heroImage")}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={
-                          editingCollection.bannerImage ||
-                          editingCollection.heroImage ||
-                          "/images/hero-courtyard.png"
-                        }
-                        alt="Banner Preview"
-                        className="w-28 h-20 object-cover rounded border border-black/[0.10] shrink-0"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <label className="block font-bold text-[#2A1F18]">
-                          Full-Bleed Drop Banner Image
-                        </label>
-                        <input
-                          type="text"
-                          value={editingCollection.bannerImage || ""}
-                          onChange={(e) =>
-                            setEditingCollection({
-                              ...editingCollection,
-                              bannerImage: e.target.value,
-                            })
-                          }
-                          className={inputCls}
-                        />
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] cursor-pointer text-xs font-bold">
-                          <Upload className="w-3.5 h-3.5 text-[#D8BF90]" />
-                          {uploadingImg ? "Uploading…" : "Upload Banner Image"}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleCollectionImageUpload(e, "bannerImage")}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Summary Description & Full Collection Story */}
-                  <div className="space-y-4 text-[13px]">
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Homepage Summary Description (1–2 sentences)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={editingCollection.description || ""}
-                        onChange={(e) =>
-                          setEditingCollection({
-                            ...editingCollection,
-                            description: e.target.value,
-                          })
-                        }
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Dedicated Drop Page Story (Separate paragraphs with a blank line)
-                      </label>
-                      <textarea
-                        rows={4}
-                        value={editingCollection.story || ""}
-                        onChange={(e) =>
-                          setEditingCollection({ ...editingCollection, story: e.target.value })
-                        }
-                        className={inputCls}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                      <input
-                        type="checkbox"
-                        checked={editingCollection.active !== false}
-                        onChange={(e) =>
-                          setEditingCollection({ ...editingCollection, active: e.target.checked })
-                        }
-                        className="accent-[#2A1F18] w-4 h-4"
-                      />
-                      <span className="font-bold text-[#1E1915]">Visible on Storefront</span>
-                    </label>
-
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setEditingCollection(null)}
-                        className="px-4 py-2 rounded-lg bg-[#F3F1ED] text-[#2A1F18] border border-black/[0.10] text-[13px] font-bold cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const ok = await postAction(
-                            { action: "save_collection", collection: editingCollection },
-                            `Saved drop "${editingCollection.dropNumber} — ${editingCollection.title}"`
-                          );
-                          if (ok) setEditingCollection(null);
-                        }}
-                        className="px-5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold cursor-pointer"
-                      >
-                        Save Drop Collection
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Collections (Exclusive Drops) Table */}
-              <div className={`${cardCls} overflow-hidden`}>
-                <table className="w-full text-[13px] text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className={thCls}>Drop</th>
-                      <th className={thCls}>Collection Title &amp; Page</th>
-                      <th className={thCls}>1-of-1 Pieces</th>
-                      <th className={thCls}>Live Drop Control (Pre-Booking / Live)</th>
-                      <th className={thCls}>Release Timing</th>
-                      <th className={`${thCls} text-right`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/[0.06]">
-                    {data.collections.map((col) => {
-                      const pieceCount = data.products.filter(
-                        (p) => p.collectionId === col.id
-                      ).length;
-                      return (
-                        <tr key={col.id} className="admin-row-hover">
-                          <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
-                            <span className="px-2.5 py-1 rounded bg-[#181512] text-white text-[12px]">
-                              {col.dropNumber || col.shortName}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 flex items-center gap-3">
-                            <img
-                              src={col.heroImage}
-                              alt={col.title}
-                              className="w-12 h-14 rounded object-cover shrink-0 border border-black/[0.10]"
-                            />
-                            <div>
-                              <p className="font-bold text-[#14110F]">{col.title}</p>
-                              <p className="text-[#1E1915] font-medium">{col.bengaliTitle}</p>
-                              <p className="font-mono text-[11px] font-bold text-[#7A5417]">
-                                /collections/{col.id}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
-                            {pieceCount} {pieceCount === 1 ? "piece (1 of 1)" : "pieces (1 of 1)"}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <select
-                              value={col.dropStatus || "live"}
-                              onChange={(e) =>
-                                postAction(
-                                  {
-                                    action: "save_collection",
-                                    collection: {
-                                      ...col,
-                                      dropStatus: e.target.value as DropStatus,
-                                    },
-                                  },
-                                  `Updated ${col.dropNumber} status to ${e.target.value}`
-                                )
-                              }
-                              className="px-3 py-1.5 bg-white border border-black/[0.12] rounded-lg text-[12.5px] font-bold text-[#14110F] cursor-pointer"
-                            >
-                              <option value="upcoming">Upcoming Preview</option>
-                              <option value="prebooking">Open for Pre-Booking</option>
-                              <option value="live">Live Drop (Open to Acquire)</option>
-                              <option value="archived">Archived Drop</option>
-                            </select>
-                          </td>
-                          <td className="py-3.5 px-4 font-num text-[#1E1915] font-medium">
-                            {col.releaseDate || "Live Now"}
-                          </td>
-                          <td className="py-3.5 px-4 text-right space-x-2">
-                            <Link
-                              href={`/collections/${col.id}`}
-                              target="_blank"
-                              className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#14110F] border border-black/[0.12] font-bold inline-flex items-center gap-1"
-                            >
-                              Drop Page <ExternalLink className="w-3 h-3" />
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCollection(col)}
-                              className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold cursor-pointer"
-                            >
-                              Edit Drop
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    `Delete collection "${col.title}"? (${pieceCount} pieces will become regular store products)`
-                                  )
-                                ) {
-                                  postAction(
-                                    { action: "delete_collection", id: col.id },
-                                    `Deleted collection ${col.title}`
-                                  );
-                                }
-                              }}
-                              className="p-1.5 rounded-lg bg-[#FCECEC] hover:bg-[#F7D6D6] text-[#8C2F2F] border border-[#E5B8B8] cursor-pointer inline-flex items-center"
-                              title="Delete collection"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* PART B: STORE PRODUCT CATEGORIES (Light Shades, Nakshi Kanthas, Wooden Jewelry Boxes, etc.) */}
-            <div className="space-y-5 border-t-2 border-black/[0.08] pt-8">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold text-[#14110F]">
-                    2. Store Product Categories (Regular Multi-Stock &amp; Collection Filter Tabs)
-                  </h2>
-                  <p className="text-[13px] text-[#1E1915] font-medium mt-0.5">
-                    Manage product categories like <strong>Light Shades</strong>, <strong>Nakshi Kanthas</strong>, and <strong>Wooden Jewelry Boxes</strong>. Both regular store products (multi-stock) and exclusive Drop products appear under their category in the store.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditingCategory({
-                      ...EMPTY_CATEGORY,
-                      sortOrder: (data.categories?.length ?? 3) + 1,
-                    })
-                  }
-                  className="px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <Plus className="w-4 h-4 text-[#D8BF90]" />
-                  Add New Category
-                </button>
-              </div>
-
-              {editingCategory && (
-                <div className="bg-white admin-surface-enter border border-black/[0.12] rounded-xl p-6 space-y-4 shadow-lg">
-                  <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
-                    <h3 className="text-base font-bold text-[#14110F]">
-                      {editingCategory.id
-                        ? `Edit Category: ${editingCategory.name}`
-                        : "Create New Store Category"}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setEditingCategory(null)}
-                      className="p-1 text-[#14110F] hover:opacity-70 cursor-pointer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-[13px]">
-                    <div>
-                      <label className="block font-bold text-[#14110F] mb-1">
-                        Category Name (e.g. Light Shades) *
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCategory.name || ""}
-                        onChange={(e) =>
-                          setEditingCategory({ ...editingCategory, name: e.target.value })
-                        }
-                        placeholder="e.g. Terracotta Vessels"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#14110F] mb-1">
-                        Short Heritage Label (e.g. Alo, Kantha, Boxes)
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCategory.shortName || ""}
-                        onChange={(e) =>
-                          setEditingCategory({ ...editingCategory, shortName: e.target.value })
-                        }
-                        placeholder="e.g. Mrittika"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#14110F] mb-1">
-                        Bengali Name (বাংলা নাম)
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCategory.bengaliName || ""}
-                        onChange={(e) =>
-                          setEditingCategory({ ...editingCategory, bengaliName: e.target.value })
-                        }
-                        placeholder="e.g. মৃত্তিকা — পোড়ামাটির পাত্র"
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#14110F] mb-1">Sort Order</label>
-                      <input
-                        type="number"
-                        value={editingCategory.sortOrder ?? 1}
-                        onChange={(e) =>
-                          setEditingCategory({
-                            ...editingCategory,
-                            sortOrder: Number(e.target.value),
-                          })
-                        }
-                        className={`${inputCls} font-num`}
-                      />
-                    </div>
-                    <div className="md:col-span-4">
-                      <label className="block font-bold text-[#14110F] mb-1">
-                        Category Subtitle
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCategory.subtitle || ""}
-                        onChange={(e) =>
-                          setEditingCategory({ ...editingCategory, subtitle: e.target.value })
-                        }
-                        placeholder="Short description of this product category"
-                        className={inputCls}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingCategory(null)}
-                      className="px-4 py-2 rounded-lg bg-[#F3F1ED] text-[#14110F] border border-black/[0.12] text-[13px] font-bold cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const ok = await postAction(
-                          { action: "save_category", category: editingCategory },
-                          `Saved category "${editingCategory.name}"`
-                        );
-                        if (ok) setEditingCategory(null);
-                      }}
-                      className="px-5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-[13px] font-bold cursor-pointer"
-                    >
-                      Save Category
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className={`${cardCls} overflow-hidden`}>
-                <table className="w-full text-[13px] text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className={thCls}>Order</th>
-                      <th className={thCls}>Category Name</th>
-                      <th className={thCls}>Bengali Name &amp; Subtitle</th>
-                      <th className={thCls}>Regular Store Pieces</th>
-                      <th className={thCls}>1-of-1 Drop Pieces</th>
-                      <th className={`${thCls} text-right`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/[0.06]">
-                    {(data.categories || []).map((cat) => {
-                      const catProducts = data.products.filter((p) => p.category === cat.id);
-                      const storeCount = catProducts.filter((p) => !p.collectionId).length;
-                      const dropCount = catProducts.filter((p) => Boolean(p.collectionId)).length;
-                      return (
-                        <tr key={cat.id} className="admin-row-hover">
-                          <td className="py-3.5 px-4 font-num font-bold text-[#14110F]">
-                            #{cat.sortOrder}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <p className="font-bold text-[#14110F]">
-                              {cat.name}{" "}
-                              <span className="text-[#7A5417]">({cat.shortName})</span>
-                            </p>
-                            <p className="font-mono text-[11px] text-[#2D2620]">id: {cat.id}</p>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <p className="font-bold text-[#14110F]">{cat.bengaliName}</p>
-                            <p className="text-[#2D2620] line-clamp-1">{cat.subtitle}</p>
-                          </td>
-                          <td className="py-3.5 px-4 font-num font-bold text-[#144740]">
-                            {storeCount} multi-stock {storeCount === 1 ? "piece" : "pieces"}
-                          </td>
-                          <td className="py-3.5 px-4 font-num font-bold text-[#7A5417]">
-                            {dropCount} exclusive drop {dropCount === 1 ? "piece" : "pieces"}
-                          </td>
-                          <td className="py-3.5 px-4 text-right space-x-2">
-                            <button
-                              type="button"
-                              onClick={() => setEditingCategory(cat)}
-                              className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white font-bold cursor-pointer"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm(`Delete category "${cat.name}"?`)) {
-                                  postAction(
-                                    { action: "delete_category", id: cat.id },
-                                    `Deleted category ${cat.name}`
-                                  );
-                                }
-                              }}
-                              className="p-1.5 rounded-lg bg-[#FCECEC] hover:bg-[#F7D6D6] text-[#8C2F2F] border border-[#E5B8B8] cursor-pointer inline-flex items-center"
-                              title="Delete category"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 4: PRODUCTS, INVENTORY & IMAGES ───────────────────────── */}
-        {activeTab === "products" && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-[13px] text-[#14110F] font-medium">
-                Add <strong>Regular Store Products</strong> (multi-stock items under a Category) or <strong>Exclusive Collection Drop Pieces</strong> (<span className="font-num">1 of 1</span> items tagged with their Drop &amp; collector name upon delivery).
-              </p>
-              <button
-                type="button"
-                onClick={() => setEditingProduct({ ...EMPTY_PRODUCT })}
-                className="px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-              >
-                <Plus className="w-4 h-4 text-[#D8BF90]" />
-                Add New Product
-              </button>
-            </div>
-
-            {/* Product Editor Modal / Panel */}
-            {editingProduct && (
-              <div className="bg-white admin-surface-enter border border-black/[0.12] rounded-xl p-6 space-y-5 shadow-lg">
-                <div className="flex items-center justify-between border-b border-black/[0.07] pb-3">
-                  <h2 className="text-base font-bold text-[#14110F]">
-                    {editingProduct.id
-                      ? `Edit Product: ${editingProduct.name}`
-                      : "Add New Product (Regular Store or Exclusive Drop Piece)"}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setEditingProduct(null)}
-                    className="p-1 text-[#14110F] hover:opacity-75 cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[13px]">
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">English Title *</label>
-                    <input
-                      type="text"
-                      value={editingProduct.name || ""}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Bengali Title (বাংলা নাম)
-                    </label>
-                    <input
-                      type="text"
-                      value={editingProduct.bengaliName || ""}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, bengaliName: e.target.value })
-                      }
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Store Category (Light Shades, Kanthas, Jewelry Boxes…) *
-                    </label>
-                    <select
-                      value={editingProduct.category || "light-shades"}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          category: e.target.value as PillarId,
-                        })
-                      }
-                      className={inputCls}
-                    >
-                      {(data.categories || []).map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name} ({cat.shortName})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Collection / Drop Assignment */}
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Product Type: Regular Multi-Stock Store vs. Exclusive Collection Drop (1 of 1) *
-                    </label>
-                    <select
-                      value={editingProduct.collectionId || ""}
-                      onChange={(e) => {
-                        const colId = e.target.value;
-                        const isDrop = Boolean(colId);
-                        setEditingProduct({
-                          ...editingProduct,
-                          collectionId: colId,
-                          stockQty: isDrop
-                            ? editingProduct.status === "sold"
-                              ? 0
-                              : 1
-                            : Math.max(1, editingProduct.stockQty || 8),
-                          statusLabel: isDrop
-                            ? editingProduct.status === "sold"
-                              ? "Acquired"
-                              : "One of One"
-                            : "In Stock",
-                        });
-                      }}
-                      className={inputCls}
-                    >
-                      <option value="">
-                        Regular Store Product (Multi-Stock in The Pieces / Store — Outside Any Drop)
-                      </option>
-                      {data.collections.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          Exclusive Collection: {c.dropNumber || c.shortName} — {c.title} (Strictly 1 of 1 · {c.dropStatus?.toUpperCase()})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">SKU</label>
-                    <input
-                      type="text"
-                      value={editingProduct.sku || ""}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })}
-                      placeholder="e.g. NK-STD-009"
-                      className={inputCls}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Selling Price (BDT ৳) *
-                    </label>
-                    <input
-                      type="number"
-                      value={editingProduct.priceBDT ?? 0}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, priceBDT: Number(e.target.value) })
-                      }
-                      className={`${inputCls} font-num`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Unit Cost (BDT ৳ for Profit Calc)
-                    </label>
-                    <input
-                      type="number"
-                      value={editingProduct.costBDT ?? 0}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, costBDT: Number(e.target.value) })
-                      }
-                      className={`${inputCls} font-num`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">Artisan Hours</label>
-                    <input
-                      type="number"
-                      value={editingProduct.artisanHours ?? 40}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          artisanHours: Number(e.target.value),
-                          artisanHoursLabel: `${e.target.value} Hours Handcrafted`,
-                        })
-                      }
-                      className={`${inputCls} font-num`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Availability Status
-                    </label>
-                    <select
-                      value={editingProduct.status || "ready"}
-                      onChange={(e) => {
-                        const nextSt = e.target.value as ProductStatus;
-                        const isDrop = Boolean(editingProduct.collectionId);
-                        setEditingProduct({
-                          ...editingProduct,
-                          status: nextSt,
-                          stockQty:
-                            nextSt === "sold"
-                              ? 0
-                              : isDrop
-                              ? 1
-                              : Math.max(1, editingProduct.stockQty ?? 8),
-                        });
-                      }}
-                      className={inputCls}
-                    >
-                      <option value="ready">
-                        {editingProduct.collectionId
-                          ? "Available (1 of 1 in Drop)"
-                          : "In Stock (Ready to Ship)"}
-                      </option>
-                      {!editingProduct.collectionId && (
-                        <option value="limited">Low Stock Alert</option>
-                      )}
-                      <option value="waitlist">Pre-Booking / Reservation</option>
-                      <option value="sold">
-                        {editingProduct.collectionId
-                          ? "Acquired (1-of-1 Collector Archive)"
-                          : "Sold Out (0 in Stock)"}
-                      </option>
-                      <option value="hidden">Hidden (Draft)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      {editingProduct.collectionId
-                        ? "Stock Qty (Locked to 1 of 1 for Collection Drop)"
-                        : "Store Stock Quantity (Multiple Pieces) *"}
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      disabled={Boolean(editingProduct.collectionId)}
-                      value={
-                        editingProduct.collectionId
-                          ? editingProduct.status === "sold"
-                            ? 0
-                            : 1
-                          : editingProduct.stockQty ?? 8
-                      }
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, stockQty: Number(e.target.value) })
-                      }
-                      className={`${inputCls} font-num disabled:opacity-65 disabled:bg-[#F3F1ED]`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      {editingProduct.collectionId
-                        ? "Acquired By (Customer Name when Delivered)"
-                        : "Low Stock Alert Threshold"}
-                    </label>
-                    {editingProduct.collectionId ? (
-                      <input
-                        type="text"
-                        value={editingProduct.acquiredBy || ""}
-                        onChange={(e) =>
-                          setEditingProduct({ ...editingProduct, acquiredBy: e.target.value })
-                        }
-                        placeholder="Auto-filled when order is Delivered (e.g. Farhana Chowdhury)"
-                        className={inputCls}
-                      />
-                    ) : (
-                      <input
-                        type="number"
-                        min={1}
-                        value={editingProduct.lowStockThreshold ?? 2}
-                        onChange={(e) =>
-                          setEditingProduct({
-                            ...editingProduct,
-                            lowStockThreshold: Number(e.target.value),
-                          })
-                        }
-                        className={`${inputCls} font-num`}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Image Upload & Path */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-[#FAF9F7] p-4 rounded-xl border border-black/[0.07] text-[13px]">
-                  <div className="md:col-span-2">
-                    <img
-                      src={editingProduct.image || "/images/hero-courtyard.png"}
-                      alt="Preview"
-                      className="w-20 h-24 object-cover rounded border border-black/[0.10]"
-                    />
-                  </div>
-                  <div className="md:col-span-6 space-y-2">
-                    <label className="block font-bold text-[#14110F]">Image Path or URL</label>
-                    <input
-                      type="text"
-                      value={editingProduct.image || ""}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, image: e.target.value })
-                      }
-                      className={inputCls}
-                    />
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {[
-                        "/images/light-jamdani-pendant.png",
-                        "/images/light-terracotta-jali.png",
-                        "/images/kantha-crimson-padma.png",
-                        "/images/kantha-peacock-emerald.png",
-                        "/images/box-teak-brass.png",
-                        "/images/box-rosewood-alpona.png",
-                      ].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setEditingProduct({ ...editingProduct, image: preset })}
-                          className="px-2 py-1 rounded bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[10px] font-bold text-[#2A1F18] border border-black/[0.10] cursor-pointer"
-                        >
-                          {preset.replace("/images/", "")}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="md:col-span-4">
-                    <label className="block font-bold text-[#14110F] mb-1.5">
-                      Or Upload New Photo From Computer
-                    </label>
-                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] cursor-pointer font-bold">
-                      <Upload className="w-4 h-4 text-[#D8BF90]" />
-                      {uploadingImg ? "Uploading…" : "Choose Image File"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                {/* Story, Materials, Dimensions, Care */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-[#14110F] mb-1">
-                      Piece Story
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editingProduct.story || ""}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, story: e.target.value })}
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">Materials</label>
-                    <input
-                      type="text"
-                      value={editingProduct.materials || ""}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, materials: e.target.value })
-                      }
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#14110F] mb-1">Dimensions</label>
-                    <input
-                      type="text"
-                      value={editingProduct.dimensions || ""}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, dimensions: e.target.value })
-                      }
-                      className={inputCls}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block font-bold text-[#14110F] mb-1">Care Instructions</label>
-                    <input
-                      type="text"
-                      value={editingProduct.care || ""}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, care: e.target.value })}
-                      className={inputCls}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingProduct(null)}
-                    className="px-4 py-2 rounded-lg bg-[#F3F1ED] text-[#2A1F18] border border-black/[0.10] text-[13px] font-bold cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const ok = await postAction(
-                        { action: "save_product", product: editingProduct },
-                        `Saved "${editingProduct.name}"`
-                      );
-                      if (ok) setEditingProduct(null);
-                    }}
-                    className="px-5 py-2 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold cursor-pointer"
-                  >
-                    Save Piece to Catalog
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Catalog Table */}
-            <div className={`${cardCls} overflow-hidden`}>
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Piece</th>
-                    <th className={thCls}>Store Category</th>
-                    <th className={thCls}>Collection / Drop Tag</th>
-                    <th className={thCls}>Price / Cost</th>
-                    <th className={thCls}>Stock / Collector</th>
-                    <th className={thCls}>Status</th>
-                    <th className={`${thCls} text-right`}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {data.products.map((p) => {
-                    const catObj = (data.categories || []).find((c) => c.id === p.category);
-                    const isCollectionPiece = Boolean(p.collectionId && p.collectionId.trim() !== "");
-                    return (
-                      <tr key={p.id} className="admin-row-hover">
-                        <td className="py-3.5 px-4 flex items-center gap-3">
-                          <img
-                            src={p.image}
-                            alt={p.name}
-                            className="w-12 h-14 rounded object-cover shrink-0 border border-black/[0.10]"
-                          />
-                          <div>
-                            <p className="font-bold text-[#14110F]">{p.name}</p>
-                            <p className="text-[#1E1915] font-medium">{p.bengaliName}</p>
-                            <p className="font-mono text-[10px] font-bold text-[#7A5417]">{p.sku}</p>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-[#14110F]">
-                          {catObj ? `${catObj.name} (${catObj.shortName})` : p.category}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {isCollectionPiece ? (
-                            <span className="inline-block px-2.5 py-1 rounded bg-[#181512] text-white text-[11px] font-bold">
-                              <span className="font-num">{p.dropNumber || "Drop"}</span> · 1 of 1
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-1 rounded bg-[#F3F1ED] text-[#14110F] border border-black/[0.12] text-[11px] font-bold">
-                              Regular Store (Multi-Stock)
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 font-num">
-                          <p className="font-bold text-[#14110F]">{formatBDT(p.priceBDT)}</p>
-                          <p className="text-[#1E1915] font-medium">Cost: {formatBDT(p.costBDT)}</p>
-                        </td>
-                        <td className="py-3.5 px-4 font-num">
-                          {isCollectionPiece ? (
-                            <div>
-                              <span className="px-2 py-0.5 rounded bg-[#FDF3E1] text-[#6B4710] border border-[#DEC07A] text-[11px] font-bold">
-                                1 of 1 ({p.status === "sold" ? "Acquired" : "Available"})
-                              </span>
-                              {p.acquiredBy && (
-                                <p className="text-[11.5px] font-bold text-[#144740] mt-1">
-                                  Acquired by {p.acquiredBy}
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="font-bold text-[#14110F]">
-                              {p.stockQty} units in stock
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge
-                            status={
-                              p.status === "sold"
-                                ? isCollectionPiece
-                                  ? "acquired"
-                                  : "sold_out"
-                                : p.status
-                            }
-                          />
-                        </td>
-                        <td className="py-3.5 px-4 text-right space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingProduct(p)}
-                            className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold cursor-pointer"
-                          >
-                            Edit
-                          </button>
-                          {p.status !== "sold" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const collector = isCollectionPiece
-                                  ? prompt(
-                                      "Enter collector/customer name (or leave blank if not yet delivered):",
-                                      p.acquiredBy || ""
-                                    ) ?? ""
-                                  : "";
-                                postAction(
-                                  {
-                                    action: "save_product",
-                                    product: {
-                                      ...p,
-                                      status: "sold",
-                                      statusLabel: isCollectionPiece ? "Acquired" : "Sold Out",
-                                      stockQty: 0,
-                                      acquiredBy: collector,
-                                    },
-                                  },
-                                  isCollectionPiece
-                                    ? `Marked "${p.name}" as Acquired${collector ? ` by ${collector}` : ""}`
-                                    : `Marked "${p.name}" as Sold Out`
-                                );
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-[#F3F1ED] hover:bg-[#E9E6E0] text-[#6B4710] border border-black/[0.10] font-bold cursor-pointer"
-                            >
-                              {isCollectionPiece ? "Mark Acquired" : "Mark Sold Out"}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`Delete "${p.name}" from catalog?`)) {
-                                postAction(
-                                  { action: "delete_product", id: p.id },
-                                  `Deleted ${p.name}`
-                                );
-                              }
-                            }}
-                            className="p-1.5 rounded-lg bg-[#FCECEC] hover:bg-[#F7D6D6] text-[#8C2F2F] border border-[#E5B8B8] cursor-pointer inline-flex items-center"
-                            title="Delete piece"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 5: CUSTOMERS CRM ───────────────────────── */}
-        {activeTab === "customers" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className={`lg:col-span-7 ${cardCls} overflow-hidden`}>
-              <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7] flex items-center justify-between">
-                <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915]">
-                  Collector CRM Directory ({data.customers.length})
-                </h2>
-                <button
-                  type="button"
-                  onClick={() =>
-                    downloadCsv(
-                      "noksha-customers-crm.csv",
-                      ["Name", "Phone", "Email", "District", "Orders", "Lifetime Value BDT", "VIP", "Tags", "Notes"],
-                      data.customers.map((c) => [
-                        c.name,
-                        c.phone,
-                        c.email,
-                        c.district,
-                        c.ordersCount,
-                        c.totalSpentBDT,
-                        c.vip ? "Yes" : "No",
-                        c.tags,
-                        c.notes,
-                      ])
-                    )
-                  }
-                  className="px-3.5 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export CRM CSV
-                </button>
-              </div>
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Collector</th>
-                    <th className={thCls}>District</th>
-                    <th className={thCls}>Orders</th>
-                    <th className={thCls}>Lifetime Value</th>
-                    <th className={thCls}>Tags</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {data.customers.map((c) => (
-                    <tr
-                      key={c.phone}
-                      onClick={() => openCustomerInspector(c)}
-                      className={`cursor-pointer admin-row-hover ${
-                        selectedCustomer?.phone === c.phone ? "bg-[#F3F1ED]" : ""
-                      }`}
-                    >
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#1E1915]">{c.name}</span>
-                          {c.vip && (
-                            <span className="px-1.5 py-0.5 rounded bg-[#B08A4F] text-white text-[10px] font-bold">
-                              VIP
-                            </span>
-                          )}
-                          {c.ordersCount > 1 && (
-                            <span className="px-1.5 py-0.5 rounded bg-[#E6F3F0] text-[#1B5E55] border border-[#A3D4C9] text-[10px] font-bold">
-                              Repeat
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-num text-[#1E1915] font-medium">{c.phone}</p>
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-[#1E1915]">{c.district}</td>
-                      <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                        {c.ordersCount}
-                      </td>
-                      <td className="py-3.5 px-4 font-num font-bold text-[#1B5E55]">
-                        {formatBDT(c.totalSpentBDT)}
-                      </td>
-                      <td className="py-3.5 px-4 text-[#1E1915] font-medium">{c.tags}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Customer CRM Profile Editor */}
-            <div className={`lg:col-span-5 ${cardCls} p-5 space-y-4`}>
-              {!selectedCustomer ? (
-                <p className="text-[13px] text-[#1E1915] font-medium py-10 text-center">
-                  Select any customer to view their order history, lifetime spend, VIP status, and CRM notes.
-                </p>
-              ) : (
-                <>
-                  <div className="flex items-start justify-between border-b border-black/[0.07] pb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-[#1E1915]">{selectedCustomer.name}</h3>
-                      <p className="font-num text-[13px] font-bold text-[#8C6528]">
-                        {selectedCustomer.phone}
-                      </p>
-                      <p className="text-[13px] text-[#1E1915] font-medium">
-                        {selectedCustomer.address}, {selectedCustomer.district}
-                      </p>
-                    </div>
-                    <a
-                      href={toBdWhatsApp(
-                        selectedCustomer.phone,
-                        `আসসালামু আলাইকুম ${selectedCustomer.name}, warm greetings from Noksha (নকশা)!`
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-lg bg-[#1B5E55] hover:bg-[#144740] text-white text-[13px] font-bold flex items-center gap-1"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      WhatsApp
-                    </a>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-[13px]">
-                    <div className="p-3 rounded-lg bg-[#FAF9F7] border border-black/[0.07]">
-                      <p className="text-[#1E1915] font-semibold">Lifetime Value</p>
-                      <p className="font-num text-lg font-bold text-[#1B5E55]">
-                        {formatBDT(selectedCustomer.totalSpentBDT)}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-[#FAF9F7] border border-black/[0.07]">
-                      <p className="text-[#1E1915] font-semibold">Orders Placed</p>
-                      <p className="font-num text-lg font-bold text-[#1E1915]">
-                        {selectedCustomer.ordersCount} ({selectedCustomer.orderIds.join(", ")})
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-[13px]">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={custVipDraft}
-                        onChange={(e) => setCustVipDraft(e.target.checked)}
-                        className="accent-[#2A1F18] w-4 h-4"
-                      />
-                      <span className="font-bold text-[#2A1F18]">Mark as VIP Collector</span>
-                    </label>
-
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">CRM Segment Tags</label>
-                      <input
-                        type="text"
-                        value={custTagsDraft}
-                        onChange={(e) => setCustTagsDraft(e.target.value)}
-                        placeholder="e.g. VIP, Kantha Collector, Bridal"
-                        className={inputCls}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-[#2A1F18] mb-1">
-                        Collector Preferences &amp; Notes
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={custNotesDraft}
-                        onChange={(e) => setCustNotesDraft(e.target.value)}
-                        placeholder="Preferred colors, gifting dates, delivery instructions…"
-                        className={inputCls}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        postAction(
-                          {
-                            action: "save_customer_note",
-                            phone: selectedCustomer.phone,
-                            tags: custTagsDraft,
-                            notes: custNotesDraft,
-                            vip: custVipDraft,
-                          },
-                          `Updated CRM profile for ${selectedCustomer.name}`
-                        )
-                      }
-                      className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
-                    >
-                      Save CRM Profile
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 6: ABANDONED CHECKOUTS ───────────────────────── */}
-        {activeTab === "abandoned" && (
-          <div className={`${cardCls} overflow-hidden`}>
-            <div className="p-5 border-b border-black/[0.07] bg-[#FAF9F7]">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[#1E1915]">
-                Abandoned Checkouts &amp; Drop-Off Recovery
-              </h2>
-              <p className="text-[13px] text-[#1E1915] font-medium mt-0.5">
-                Tracks visitors who opened checkout or started filling their details, showing the exact step where they stopped and a 1-click WhatsApp recovery link.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Visitor / Contact</th>
-                    <th className={thCls}>Last Step Reached Before Exit</th>
-                    <th className={thCls}>Pieces in Bag</th>
-                    <th className={thCls}>Bag Value</th>
-                    <th className={thCls}>Status</th>
-                    <th className={`${thCls} text-right`}>Recovery Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {data.abandonedCheckouts.map((a) => (
-                    <tr key={a.sessionId} className="admin-row-hover">
-                      <td className="py-3.5 px-4">
-                        <p className="font-bold text-[#1E1915]">
-                          {a.customerName || `Visitor ${a.visitorId.slice(0, 10)}`}
-                        </p>
-                        <p className="font-num text-[#1E1915] font-medium">
-                          {a.customerPhone || "No phone entered yet"} · {a.district}
-                        </p>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded bg-[#FCECEC] text-[#8C2F2F] border border-[#E5B8B8] font-mono font-bold text-[11px]">
-                          {a.lastStep}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {a.items.map((i, idx) => (
-                          <p key={idx} className="text-[#1E1915] font-medium">
-                            • {i.name} × <span className="font-num">{i.quantity}</span>
-                          </p>
-                        ))}
-                      </td>
-                      <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                        {formatBDT(a.subtotalBDT)}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {a.recovered ? (
-                          <span className="text-[#1B5E55] font-bold">Recovered ✓</span>
-                        ) : (
-                          <span className="text-[#7A5417] font-bold">Unrecovered</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        {a.customerPhone ? (
-                          <a
-                            href={toBdWhatsApp(
-                              a.customerPhone,
-                              `আসসালামু আলাইকুম ${a.customerName || ""}, we noticed you were inspecting ${
-                                a.items[0]?.name || "a Noksha piece"
-                              }. Let us know if we can assist with your order or apply your 10% courtesy code SHUVO10!`
-                            )}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1B5E55] hover:bg-[#144740] text-white font-bold"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            Recover via WhatsApp
-                          </a>
-                        ) : (
-                          <span className="text-[#1E1915] font-medium">Exited before phone step</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 7: WAITLIST, FOUNDING CIRCLE & LEADS ───────────────────────── */}
-        {activeTab === "leads" && (
-          <div className="space-y-6">
-            <div className={`flex flex-wrap items-center justify-between gap-4 ${cardCls} p-4`}>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: "all", label: "All Leads" },
-                  { id: "waitlist", label: "Batch #02 Piece Reservations" },
-                  { id: "founding_circle", label: "Founding Circle Members" },
-                  { id: "newsletter", label: "Newsletter Subscribers" },
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setLeadFilter(t.id)}
-                    className={`px-3.5 py-1.5 rounded-lg text-[13px] font-bold cursor-pointer ${
-                      leadFilter === t.id
-                        ? "bg-[#181512] text-[#FBF8F3]"
-                        : "bg-[#F3F1ED] text-[#2A1F18] hover:bg-[#E9E6E0]"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  downloadCsv(
-                    "noksha-leads.csv",
-                    ["ID", "Type", "Name", "Phone", "Email", "Piece / Membership", "Status", "Notes", "Date"],
-                    data.leads.map((l) => [
-                      l.id,
-                      l.type,
-                      l.name,
-                      l.phone,
-                      l.email,
-                      l.product_name,
-                      l.status,
-                      l.notes,
-                      l.created_at,
-                    ])
-                  )
-                }
-                className="px-3.5 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] text-[13px] font-bold flex items-center gap-1.5 cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Export Leads CSV
-              </button>
-            </div>
-
-            <div className={`${cardCls} overflow-hidden`}>
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Type</th>
-                    <th className={thCls}>Contact</th>
-                    <th className={thCls}>Piece / Circle No.</th>
-                    <th className={thCls}>Status</th>
-                    <th className={thCls}>Date</th>
-                    <th className={`${thCls} text-right`}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {data.leads
-                    .filter((l) => leadFilter === "all" || l.type === leadFilter)
-                    .map((l) => (
-                      <tr key={l.id} className="admin-row-hover">
-                        <td className="py-3.5 px-4 uppercase font-bold text-[#8C6528]">
-                          {l.type.replace("_", " ")}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <p className="font-bold text-[#1E1915]">{l.name || "—"}</p>
-                          <p className="font-num text-[#1E1915] font-medium">
-                            {l.phone} {l.email ? `· ${l.email}` : ""}
-                          </p>
-                        </td>
-                        <td className="py-3.5 px-4 font-medium text-[#1E1915]">{l.product_name}</td>
-                        <td className="py-3.5 px-4">
-                          <select
-                            value={l.status}
-                            onChange={(e) =>
-                              postAction(
-                                {
-                                  action: "update_lead",
-                                  id: l.id,
-                                  status: e.target.value,
-                                  notes: l.notes,
-                                },
-                                "Lead status updated"
-                              )
-                            }
-                            className="px-2.5 py-1 bg-white border border-black/[0.10] rounded text-[13px] uppercase font-bold text-[#1E1915]"
-                          >
-                            <option value="new">new</option>
-                            <option value="contacted">contacted</option>
-                            <option value="converted">converted</option>
-                          </select>
-                        </td>
-                        <td className="py-3.5 px-4 font-num text-[#1E1915] font-medium">
-                          {new Date(l.created_at).toLocaleDateString("en-GB")}
-                        </td>
-                        <td className="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
-                          {l.type === "waitlist" && l.product_id && l.status !== "converted" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    `Mark "${l.product_name}" as Sold / Acquired to waitlist customer ${l.name}?`
-                                  )
-                                ) {
-                                  postAction(
-                                    {
-                                      action: "mark_waitlist_sold",
-                                      leadId: l.id,
-                                      productId: l.product_id,
-                                      customerName: l.name,
-                                    },
-                                    `Marked "${l.product_name}" sold to ${l.name}`
-                                  );
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#181512] hover:bg-[#2F2721] text-white font-bold text-[12px] cursor-pointer"
-                            >
-                              Mark Sold to Buyer
-                            </button>
-                          )}
-                          {l.phone && (
-                            <a
-                              href={toBdWhatsApp(
-                                l.phone,
-                                `আসসালামু আলাইকুম ${l.name}, regarding "${l.product_name}" from Noksha!`
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1B5E55] hover:bg-[#144740] text-white font-bold text-[12px]"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              WhatsApp
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 8: PROMO CODES MANAGER ───────────────────────── */}
-        {activeTab === "promos" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className={`lg:col-span-5 ${cardCls} p-5 space-y-4`}>
-              <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] border-b border-black/[0.07] pb-2.5">
-                Create or Update Courtesy / Promo Code
-              </h2>
-              <div className="space-y-3 text-[13px]">
-                <div>
-                  <label className="block font-bold text-[#2A1F18] mb-1">Code (Uppercase) *</label>
-                  <input
-                    type="text"
-                    value={promoCodeDraft}
-                    onChange={(e) => setPromoCodeDraft(e.target.value.toUpperCase())}
-                    placeholder="e.g. EID20 or SHUVO10"
-                    className={`${inputCls} uppercase font-mono`}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-[#2A1F18] mb-1">Discount Type</label>
-                    <select
-                      value={promoTypeDraft}
-                      onChange={(e) => setPromoTypeDraft(e.target.value as "percent" | "fixed")}
-                      className={inputCls}
-                    >
-                      <option value="percent">Percentage (%)</option>
-                      <option value="fixed">Fixed Amount (৳ BDT)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#2A1F18] mb-1">
-                      Value ({promoTypeDraft === "percent" ? "%" : "৳"})
-                    </label>
-                    <input
-                      type="number"
-                      value={promoValDraft}
-                      onChange={(e) => setPromoValDraft(e.target.value)}
-                      className={`${inputCls} font-num`}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-[#2A1F18] mb-1">
-                      Min. Order (BDT ৳)
-                    </label>
-                    <input
-                      type="number"
-                      value={promoMinDraft}
-                      onChange={(e) => setPromoMinDraft(e.target.value)}
-                      className={`${inputCls} font-num`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-[#2A1F18] mb-1">Max Uses</label>
-                    <input
-                      type="number"
-                      value={promoMaxUsesDraft}
-                      onChange={(e) => setPromoMaxUsesDraft(e.target.value)}
-                      className={`${inputCls} font-num`}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block font-bold text-[#2A1F18] mb-1">Display Label</label>
-                  <input
-                    type="text"
-                    value={promoLabelDraft}
-                    onChange={(e) => setPromoLabelDraft(e.target.value)}
-                    placeholder="e.g. 15% Eid Collector Privilege"
-                    className={inputCls}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const ok = await postAction(
-                      {
-                        action: "save_promo",
-                        code: promoCodeDraft,
-                        discountType: promoTypeDraft,
-                        discountValue: Number(promoValDraft),
-                        minOrderBDT: Number(promoMinDraft),
-                        maxUses: Number(promoMaxUsesDraft),
-                        label:
-                          promoLabelDraft ||
-                          (promoTypeDraft === "percent"
-                            ? `${promoValDraft}% Courtesy`
-                            : `৳${promoValDraft} Courtesy`),
-                        active: true,
-                      },
-                      `Saved promo code ${promoCodeDraft}`
-                    );
-                    if (ok) {
-                      setPromoCodeDraft("");
-                      setPromoLabelDraft("");
-                    }
-                  }}
-                  className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
-                >
-                  Save Promo Code (Live Immediately)
-                </button>
-              </div>
-            </div>
-
-            <div className={`lg:col-span-7 ${cardCls} overflow-hidden`}>
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Code</th>
-                    <th className={thCls}>Discount</th>
-                    <th className={thCls}>Min Order</th>
-                    <th className={thCls}>Redemptions</th>
-                    <th className={thCls}>Status</th>
-                    <th className={`${thCls} text-right`}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {data.promoCodes.map((p) => (
-                    <tr key={p.code} className="admin-row-hover">
-                      <td className="py-3.5 px-4">
-                        <p className="font-mono font-bold text-[#2A1F18] text-sm">{p.code}</p>
-                        <p className="text-[#1E1915] font-medium">{p.label}</p>
-                      </td>
-                      <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                        {p.discountType === "percent"
-                          ? `${p.discountValue}%`
-                          : formatBDT(p.discountValue)}
-                      </td>
-                      <td className="py-3.5 px-4 font-num font-medium text-[#1E1915]">
-                        {formatBDT(p.minOrderBDT)}
-                      </td>
-                      <td className="py-3.5 px-4 font-num font-bold text-[#1E1915]">
-                        {p.usedCount} / {p.maxUses || "∞"}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            postAction(
-                              {
-                                action: "save_promo",
-                                code: p.code,
-                                discountType: p.discountType,
-                                discountValue: p.discountValue,
-                                minOrderBDT: p.minOrderBDT,
-                                maxUses: p.maxUses,
-                                label: p.label,
-                                active: !p.active,
-                              },
-                              `Toggled ${p.code}`
-                            )
-                          }
-                          className={`px-2.5 py-0.5 rounded font-bold cursor-pointer ${
-                            p.active
-                              ? "bg-[#E6F3F0] text-[#1B5E55] border border-[#A3D4C9]"
-                              : "bg-[#EFE8DC] text-[#1E1915]"
-                          }`}
-                        >
-                          {p.active ? "Active" : "Paused"}
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            postAction({ action: "delete_promo", code: p.code }, `Deleted ${p.code}`)
-                          }
-                          className="p-1.5 rounded bg-[#FCECEC] hover:bg-[#F7D6D6] text-[#8C2F2F] border border-[#E5B8B8] cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 9: SITE CONTENT EDITOR ───────────────────────── */}
-        {activeTab === "content" && (
-          <SiteContentEditor
-            contentDraft={contentDraft}
-            setContentDraft={setContentDraft}
-            onPublish={() =>
-              postAction(
-                { action: "save_content", content: contentDraft },
-                "All site content & media published!"
-              )
-            }
-            notify={notify}
-            inputCls={inputCls}
-            cardCls={cardCls}
-          />
-        )}
-
-        {/* ───────────────────────── TAB 10: STAFF & ROLES (OWNER ONLY) ───────────────────────── */}
-        {activeTab === "staff" && data.user.role === "owner" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className={`lg:col-span-5 ${cardCls} p-5 space-y-4`}>
-              <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#1E1915] flex items-center gap-2 border-b border-black/[0.07] pb-2.5">
-                <UserCheck className="w-4 h-4 text-[#8C6528]" />
-                Add or Update Staff Account
-              </h2>
-              <div className="space-y-3 text-[13px]">
-                <div>
-                  <label className="block font-bold text-[#2A1F18] mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    value={staffName}
-                    onChange={(e) => setStaffName(e.target.value)}
-                    placeholder="e.g. Maliha Rahman"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-[#2A1F18] mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={staffEmail}
-                    onChange={(e) => setStaffEmail(e.target.value)}
-                    placeholder="maliha@noksha.bd"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-[#2A1F18] mb-1">
-                    Role &amp; Permissions
-                  </label>
-                  <select
-                    value={staffRole}
-                    onChange={(e) =>
-                      setStaffRole(e.target.value as "owner" | "manager" | "support")
-                    }
-                    className={inputCls}
-                  >
-                    <option value="owner">Owner — Full access + Staff management</option>
-                    <option value="manager">
-                      Manager — Products, Orders, Promos, Analytics, Content
-                    </option>
-                    <option value="support">
-                      Support — Orders, Customers CRM, Leads, Abandoned Carts
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-[#2A1F18] mb-1">Password *</label>
-                  <input
-                    type="password"
-                    value={staffPassword}
-                    onChange={(e) => setStaffPassword(e.target.value)}
-                    placeholder="Set password"
-                    className={inputCls}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const ok = await postAction(
-                      {
-                        action: "save_staff",
-                        name: staffName,
-                        email: staffEmail,
-                        role: staffRole,
-                        password: staffPassword,
-                      },
-                      `Saved staff account ${staffEmail}`
-                    );
-                    if (ok) {
-                      setStaffName("");
-                      setStaffEmail("");
-                      setStaffPassword("");
-                    }
-                  }}
-                  className="w-full py-2.5 bg-[#181512] hover:bg-[#2F2721] text-[#FBF8F3] font-bold rounded-lg cursor-pointer"
-                >
-                  Save Staff Account
-                </button>
-              </div>
-            </div>
-
-            <div className={`lg:col-span-7 ${cardCls} overflow-hidden`}>
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Staff Member</th>
-                    <th className={thCls}>Role</th>
-                    <th className={thCls}>Last Login</th>
-                    <th className={thCls}>Status</th>
-                    <th className={`${thCls} text-right`}>Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {data.staff.map((s) => (
-                    <tr key={s.id} className="admin-row-hover">
-                      <td className="py-3.5 px-4">
-                        <p className="font-bold text-[#1E1915]">{s.name}</p>
-                        <p className="text-[#1E1915] font-medium">{s.email}</p>
-                      </td>
-                      <td className="py-3.5 px-4 uppercase font-bold text-[#8C6528]">{s.role}</td>
-                      <td className="py-3.5 px-4 font-num text-[#1E1915] font-medium">
-                        {s.last_login_at
-                          ? new Date(s.last_login_at).toLocaleString("en-GB")
-                          : "Never"}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            postAction(
-                              { action: "toggle_staff", id: s.id, active: !s.active },
-                              "Updated staff status"
-                            )
-                          }
-                          className={`px-2.5 py-0.5 rounded font-bold cursor-pointer ${
-                            s.active
-                              ? "bg-[#E6F3F0] text-[#1B5E55] border border-[#A3D4C9]"
-                              : "bg-[#FCECEC] text-[#8C2F2F] border border-[#E5B8B8]"
-                          }`}
-                        >
-                          {s.active ? "Active" : "Disabled"}
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        {s.id !== data.user.id && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              postAction({ action: "delete_staff", id: s.id }, "Removed staff")
-                            }
-                            className="p-1.5 rounded bg-[#FCECEC] hover:bg-[#F7D6D6] text-[#8C2F2F] border border-[#E5B8B8] cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ───────────────────────── TAB 11: ACTIVITY AUDIT LOG ───────────────────────── */}
-        {activeTab === "audit" && (() => {
-          const uniqueActors = Array.from(new Set(data.auditLogs.map((l) => l.user_email))).sort();
-          const q = auditSearch.trim().toLowerCase();
-          const filteredLogs = data.auditLogs.filter((l) => {
-            if (auditActorFilter !== "all" && l.user_email !== auditActorFilter) return false;
-            if (!q) return true;
-            return (
-              l.user_email.toLowerCase().includes(q) ||
-              l.action.toLowerCase().includes(q) ||
-              l.entity_type.toLowerCase().includes(q) ||
-              l.entity_id.toLowerCase().includes(q) ||
-              l.details.toLowerCase().includes(q)
-            );
-          });
-
-          return (
-            <div className={`${cardCls} overflow-hidden`}>
-              <div className="p-4 border-b border-black/[0.07] bg-[#FAF9F7] flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-[13px] font-bold uppercase tracking-wider text-[#14110F]">
-                    Full Admin Activity Audit Log ({filteredLogs.length} of {data.auditLogs.length} events)
-                  </h2>
-                  <p className="text-[12px] text-[#2D2620] mt-0.5">
-                    Every sign-in, sign-out, upload, order, cancellation, product, drop, and content action is permanently recorded with timestamp.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    value={auditSearch}
-                    onChange={(e) => setAuditSearch(e.target.value)}
-                    placeholder="Search user, action, or details…"
-                    className="px-3 py-1.5 bg-white border border-black/[0.12] rounded-lg text-[12.5px] text-[#14110F] focus:outline-none"
-                  />
-                  <select
-                    value={auditActorFilter}
-                    onChange={(e) => setAuditActorFilter(e.target.value)}
-                    className="px-3 py-1.5 bg-white border border-black/[0.12] rounded-lg text-[12.5px] font-bold text-[#14110F] cursor-pointer"
-                  >
-                    <option value="all">All Staff Actors</option>
-                    {uniqueActors.map((actor) => (
-                      <option key={actor} value={actor}>
-                        {actor}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      downloadCsv(
-                        "noksha-full-audit-log.csv",
-                        ["ID", "Timestamp", "User Email", "Role", "Action", "Entity Type", "Entity ID", "Details"],
-                        filteredLogs.map((l) => [
-                          l.id,
-                          new Date(l.created_at).toLocaleString("en-GB"),
-                          l.user_email,
-                          l.user_role,
-                          l.action,
-                          l.entity_type,
-                          l.entity_id,
-                          l.details,
-                        ])
-                      )
-                    }
-                    className="px-3 py-1.5 rounded-lg bg-[#181512] hover:bg-[#2F2721] text-white text-[12.5px] font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-[#D8BF90]" />
-                    Export Full CSV
-                  </button>
-                </div>
-              </div>
-              <table className="w-full text-[13px] text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className={thCls}>Timestamp</th>
-                    <th className={thCls}>Staff Actor</th>
-                    <th className={thCls}>Action</th>
-                    <th className={thCls}>Target</th>
-                    <th className={thCls}>Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/[0.06]">
-                  {filteredLogs.map((log) => (
-                    <tr key={log.id} className="admin-row-hover">
-                      <td className="py-3 px-4 font-num text-[#14110F] font-medium whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString("en-GB", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-[#14110F] font-bold">{log.user_email}</span>{" "}
-                        <span className="text-[#7A5417] font-bold uppercase text-[10px]">
-                          ({log.user_role})
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-[#144740]">{log.action}</td>
-                      <td className="py-3 px-4 font-mono font-semibold text-[#14110F]">
-                        {log.entity_type}:{log.entity_id}
-                      </td>
-                      <td className="py-3 px-4 text-[#14110F] font-medium">{log.details}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        })()}
-        </div>
       </div>
-
-      {/* Sonner-Inspired Floating Toast */}
-      {toast && (
-        <div
-          key={toast}
-          className="admin-toast fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#181512] text-[#FAF9F7] border border-white/10 text-[13px] font-normal shadow-[0_10px_30px_rgba(24,21,18,0.22)]"
-        >
-          <span className="h-2 w-2 rounded-full bg-[#34D399] shrink-0" />
-          <span>{toast}</span>
-        </div>
-      )}
-    </div>
-    </>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  accent: string;
-}) {
-  return (
-    <div className="admin-kpi-card bg-white border border-black/[0.08] rounded-xl p-4 sm:p-5 shadow-[0_1px_2px_rgba(24,21,18,0.04)]">
-      <p className="text-[11.5px] text-[#635A52] font-medium tracking-[0.02em]">{label}</p>
-      <p className={`font-num text-2xl sm:text-[28px] font-semibold tracking-tight mt-2 leading-none ${accent}`}>
-        {value}
-      </p>
-      <p className="font-num text-[12px] text-[#7D7369] font-normal mt-2">{sub}</p>
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { pill: string; dot: string }> = {
-    new: { pill: "bg-[#ECFDF5] text-[#065F46]", dot: "bg-[#10B981]" },
-    confirmed: { pill: "bg-[#FFFBEB] text-[#92400E]", dot: "bg-[#F59E0B]" },
-    packed: { pill: "bg-[#F3F1ED] text-[#3D3630]", dot: "bg-[#7D7369]" },
-    shipped: { pill: "bg-[#EFF6FF] text-[#1E40AF]", dot: "bg-[#3B82F6]" },
-    delivered: { pill: "bg-[#ECFDF5] text-[#065F46]", dot: "bg-[#059669]" },
-    cancelled: { pill: "bg-[#FEF2F2] text-[#991B1B]", dot: "bg-[#EF4444]" },
-    ready: { pill: "bg-[#ECFDF5] text-[#065F46]", dot: "bg-[#10B981]" },
-    limited: { pill: "bg-[#FFFBEB] text-[#92400E]", dot: "bg-[#F59E0B]" },
-    waitlist: { pill: "bg-[#F3F1ED] text-[#3D3630]", dot: "bg-[#7D7369]" },
-    sold: { pill: "bg-[#FEF2F2] text-[#991B1B]", dot: "bg-[#EF4444]" },
-    sold_out: { pill: "bg-[#FEF2F2] text-[#991B1B]", dot: "bg-[#EF4444]" },
-    acquired: { pill: "bg-[#FEF7E6] text-[#7A5417]", dot: "bg-[#B08A4F]" },
-    hidden: { pill: "bg-[#F3F1ED] text-[#635A52]", dot: "bg-[#A1978E]" },
-  };
-  const style = map[status] || { pill: "bg-[#F3F1ED] text-[#3D3630]", dot: "bg-[#7D7369]" };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium capitalize ${style.pill}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-      {status.replace("_", " ")}
-    </span>
+    </AdminContext.Provider>
   );
 }

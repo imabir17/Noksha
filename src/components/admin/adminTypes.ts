@@ -2,6 +2,124 @@ import { DbCategory, DbCollection, DbProduct, DbPromoCode } from "@/lib/db";
 
 export type StaffRole = "owner" | "manager" | "support";
 
+export type AdminTab =
+  | "overview"
+  | "analytics"
+  | "orders"
+  | "cancellations"
+  | "collections"
+  | "products"
+  | "customers"
+  | "promos"
+  | "abandoned"
+  | "leads"
+  | "content"
+  | "staff"
+  | "audit";
+
+export const ALL_ADMIN_TABS: AdminTab[] = [
+  "overview",
+  "analytics",
+  "orders",
+  "cancellations",
+  "collections",
+  "products",
+  "customers",
+  "promos",
+  "abandoned",
+  "leads",
+  "content",
+  "staff",
+  "audit",
+];
+
+export const ORDER_STATUSES = [
+  "new",
+  "confirmed",
+  "packed",
+  "shipped",
+  "delivered",
+  "cancelled",
+] as const;
+
+export interface AdminMetrics {
+  grossRevenue: number;
+  estProfit: number;
+  validOrdersCount: number;
+  pendingOrdersCount: number;
+  aov: number;
+  lowStockProducts: DbProduct[];
+  unrecoveredCarts: AdminAbandoned[];
+  abandonedValue: number;
+  convRate: string;
+}
+
+export function computeAdminMetrics(data: AdminPayload | null): AdminMetrics | null {
+  if (!data) return null;
+  const validOrders = data.orders.filter((o) => o.status !== "cancelled");
+  const grossRevenue = validOrders.reduce((s, o) => s + o.totalBDT, 0);
+  const aov = validOrders.length > 0 ? Math.round(grossRevenue / validOrders.length) : 0;
+
+  const costMap = new Map(data.products.map((p) => [p.id, p.costBDT]));
+  let totalCost = 0;
+  for (const o of validOrders) {
+    for (const item of o.items) {
+      const unitCost =
+        (item.productId && costMap.get(item.productId)) || Math.round(item.priceBDT * 0.48);
+      totalCost += unitCost * item.quantity;
+    }
+  }
+  const estProfit = Math.max(0, grossRevenue - totalCost);
+
+  const lowStockProducts = data.products.filter(
+    (p) =>
+      p.status !== "waitlist" &&
+      (p.status === "sold" || p.stockQty <= p.lowStockThreshold)
+  );
+
+  const unrecoveredCarts = data.abandonedCheckouts.filter((a) => !a.recovered);
+  const abandonedValue = unrecoveredCarts.reduce((s, a) => s + a.subtotalBDT, 0);
+
+  const convRate =
+    data.analytics.totalSessions > 0
+      ? ((validOrders.length / data.analytics.totalSessions) * 100).toFixed(1)
+      : "0.0";
+
+  return {
+    grossRevenue,
+    estProfit,
+    validOrdersCount: validOrders.length,
+    pendingOrdersCount: data.orders.filter(
+      (o) => o.status === "new" || o.status === "confirmed"
+    ).length,
+    aov,
+    lowStockProducts,
+    unrecoveredCarts,
+    abandonedValue,
+    convRate,
+  };
+}
+
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return "Never";
+  const time = new Date(iso).getTime();
+  if (Number.isNaN(time)) return iso;
+  const diffSec = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (diffSec < 45) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return "Yesterday";
+  if (diffDay < 30) return `${diffDay}d ago`;
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export interface SessionUser {
   id: number;
   name: string;

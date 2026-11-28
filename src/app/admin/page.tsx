@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import AdminCommandCentre from "@/components/admin/AdminCommandCentre";
 
@@ -7,5 +8,16 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return <AdminCommandCentre />;
+  return (
+    <Suspense
+      fallback={
+        <div className="admin-ui min-h-screen bg-a-canvas text-a-text-1 flex items-center justify-center gap-2.5 text-[13px]">
+          <span className="h-2 w-2 rounded-full bg-a-accent animate-pulse" />
+          Loading Noksha Studio Console…
+        </div>
+      }
+    >
+      <AdminCommandCentre />
+    </Suspense>
+  );
 }
