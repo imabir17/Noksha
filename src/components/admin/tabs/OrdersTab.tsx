@@ -626,6 +626,7 @@ export default function OrdersTab() {
               <IconButton
                 aria-label="Copy order ID"
                 tooltip="Copy order ID"
+                tooltipSide="bottom"
                 onClick={() => copyText(activeOrder.id, `Copied ${activeOrder.id}`)}
               >
                 <Copy className="w-3.5 h-3.5" />

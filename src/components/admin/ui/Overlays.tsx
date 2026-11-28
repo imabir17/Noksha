@@ -122,7 +122,13 @@ export function Drawer({
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {headerActions}
-            <IconButton aria-label="Close panel" tooltip="Close" kbd="Esc" onClick={attemptClose}>
+            <IconButton
+              aria-label="Close panel"
+              tooltip="Close"
+              tooltipSide="bottom"
+              kbd="Esc"
+              onClick={attemptClose}
+            >
               <X className="w-4 h-4" />
             </IconButton>
           </div>

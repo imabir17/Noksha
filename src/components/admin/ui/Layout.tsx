@@ -69,8 +69,8 @@ export function Sparkline({
   stroke?: string;
 }) {
   if (!points || points.length < 2) return null;
-  const width = 84;
-  const height = 28;
+  const width = 68;
+  const height = 26;
   const min = Math.min(...points);
   const max = Math.max(...points);
   const range = max - min || 1;
@@ -145,8 +145,8 @@ export function KpiCard({
         )}
       </div>
 
-      <div className="mt-2.5 flex items-end justify-between gap-3">
-        <p className="font-num text-[26px] leading-8 font-semibold tracking-tight text-a-text-1">
+      <div className="mt-2.5 flex items-end justify-between gap-2">
+        <p className="font-num text-[24px] xl:text-[26px] leading-8 font-semibold tracking-tight text-a-text-1 whitespace-nowrap">
           {value}
         </p>
         {sparkline && sparkline.length > 1 && <Sparkline points={sparkline} />}

@@ -72,12 +72,20 @@ export function Tooltip({
       ? "left-full top-1/2 -translate-y-1/2 ml-2"
       : "bottom-full left-1/2 -translate-x-1/2 mb-1.5";
 
+  const handleFocus = (e: React.FocusEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (target && typeof target.matches === "function" && !target.matches(":focus-visible")) {
+      return;
+    }
+    handleEnter();
+  };
+
   return (
     <span
       className="relative inline-flex"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
-      onFocus={handleEnter}
+      onFocus={handleFocus}
       onBlur={handleLeave}
     >
       {children}
@@ -172,12 +180,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
 export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   "aria-label": string;
   tooltip?: string;
+  tooltipSide?: "top" | "bottom" | "right";
   kbd?: string;
   variant?: "ghost" | "secondary" | "danger";
 }
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { tooltip, kbd, variant = "ghost", className = "", children, type = "button", ...rest },
+  { tooltip, tooltipSide = "top", kbd, variant = "ghost", className = "", children, type = "button", ...rest },
   ref
 ) {
   const variantCls =
@@ -200,7 +209,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
 
   if (tooltip || rest["aria-label"]) {
     return (
-      <Tooltip content={tooltip || rest["aria-label"]} kbd={kbd}>
+      <Tooltip content={tooltip || rest["aria-label"]} kbd={kbd} side={tooltipSide}>
         {btn}
       </Tooltip>
     );
