@@ -1,27 +1,7 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Activity,
-  BarChart3,
-  Copy,
-  ExternalLink,
-  FileText,
-  Layers,
-  LogOut,
-  Package,
-  RefreshCw,
-  Settings,
-  Shield,
-  ShoppingBag,
-  Sparkles,
-  Tag,
-  Trash2,
-  TrendingDown,
-  Users,
-  XCircle,
-} from "lucide-react";
 import { formatBDT } from "@/data/nokshaData";
 import { AdminOrder, AdminTab, canAccessSection } from "./adminTypes";
 import {
@@ -33,6 +13,14 @@ import {
 } from "./hooks/useAdminData";
 import { useAdminTab } from "./hooks/useAdminTab";
 import OrderSlipModal from "./print/OrderSlipModal";
+import { buildNavGroups } from "./AdminShell/navConfig";
+import { MobileNavDrawer, Sidebar } from "./AdminShell/Sidebar";
+import { TopBar } from "./AdminShell/TopBar";
+import { MobileBottomBar } from "./AdminShell/MobileBottomBar";
+import { CommandPalette } from "./AdminShell/CommandPalette";
+import { ShortcutsDialog } from "./AdminShell/ShortcutsDialog";
+import { Button, ConfirmDialog, Field, Input, KpiSkeleton, TableSkeleton } from "./ui";
+
 import OverviewTab from "./tabs/OverviewTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
 import OrdersTab from "./tabs/OrdersTab";
@@ -65,9 +53,20 @@ export default function AdminCommandCentre() {
 
   const [email, setEmail] = useState("owner@noksha.bd");
   const [password, setPassword] = useState("NokshaOwner2026!");
+  const [signingIn, setSigningIn] = useState(false);
+
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [printingSlipOrders, setPrintingSlipOrders] = useState<AdminOrder[]>([]);
-  const [triggerNewCounter] = useState(0);
+
+  // Shell overlays & shortcut state
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [triggerNewCounter, setTriggerNewCounter] = useState(0);
+
+  const chordRef = useRef<{ key: string; at: number } | null>(null);
 
   const notify = useCallback(
     (
@@ -148,31 +147,128 @@ export default function AdminCommandCentre() {
     }, 150);
   }, []);
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    if (!data) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      // ⌘K / Ctrl+K always toggles Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      if (paletteOpen || shortcutsOpen || mobileNavOpen || confirmResetOpen) return;
+
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const k = e.key;
+
+      if (k === "?") {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+
+      if (k === "/") {
+        const searchEl = document.querySelector<HTMLInputElement>("[data-admin-search]");
+        if (searchEl) {
+          e.preventDefault();
+          searchEl.focus();
+        } else {
+          e.preventDefault();
+          setPaletteOpen(true);
+        }
+        return;
+      }
+
+      if (k.toLowerCase() === "n") {
+        if (["products", "collections", "promos", "staff"].includes(activeTab)) {
+          e.preventDefault();
+          setTriggerNewCounter((c) => c + 1);
+        }
+        return;
+      }
+
+      const lower = k.toLowerCase();
+      const now = Date.now();
+      if (chordRef.current && chordRef.current.key === "g" && now - chordRef.current.at < 900) {
+        chordRef.current = null;
+        const map: Record<string, AdminTab> = {
+          o: "overview",
+          r: "orders",
+          p: "products",
+          c: "customers",
+        };
+        const dest = map[lower];
+        if (dest && canAccessSection(data.user.role, dest)) {
+          e.preventDefault();
+          setActiveTab(dest);
+        }
+        return;
+      }
+
+      if (lower === "g") {
+        chordRef.current = { key: "g", at: now };
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [
+    activeTab,
+    confirmResetOpen,
+    data,
+    mobileNavOpen,
+    paletteOpen,
+    setActiveTab,
+    shortcutsOpen,
+  ]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSigningIn(true);
     await login(email, password);
+    setSigningIn(false);
   };
 
+  /* ─── 1. Initial Skeleton Screen ─── */
   if (loading && !data) {
     return (
-      <div className="admin-ui min-h-screen bg-a-canvas text-a-text-1 flex items-center justify-center gap-2.5 text-[14px]">
-        <span className="h-2 w-2 rounded-full bg-a-accent animate-pulse" />
-        Loading Noksha Studio Console…
+      <div className="admin-ui min-h-screen bg-a-canvas text-a-text-1 p-6 sm:p-10">
+        <div className="max-w-[1280px] mx-auto space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+          </div>
+          <TableSkeleton rows={6} cols={5} />
+        </div>
       </div>
     );
   }
 
+  /* ─── 2. Staff Sign-In Screen ─── */
   if (!data || !metrics) {
     return (
       <div className="admin-ui min-h-screen bg-a-canvas text-a-text-1 flex items-center justify-center p-5">
-        <div className="admin-surface-enter w-full max-w-[400px] bg-a-surface border border-a-border rounded-2xl p-8 shadow-[var(--a-shadow-pop)]">
+        <div className="admin-surface-enter w-full max-w-[400px] bg-a-surface border border-a-border rounded-[14px] p-8 shadow-[var(--a-shadow-pop)]">
           <div className="flex flex-col items-center text-center border-b border-a-border pb-6">
             <img
               src="/brand/noksha-logo.png"
               alt="Noksha — Handcrafted in Bangladesh"
-              className="h-12 w-auto object-contain"
+              className="h-11 w-auto object-contain"
             />
-            <p className="text-[12px] uppercase tracking-[0.18em] text-a-accent-text font-medium mt-4">
+            <p className="text-[12px] uppercase tracking-[0.16em] text-a-accent-text font-medium mt-4">
               Studio Console &amp; CRM
             </p>
             <h1 className="font-display text-3xl font-normal text-a-text-1 mt-1">
@@ -181,53 +277,48 @@ export default function AdminCommandCentre() {
           </div>
 
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
-            <div>
-              <label className="block mb-1.5">Staff Email</label>
-              <input
+            <Field label="Staff email" required>
+              <Input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-a-subtle border border-a-border rounded-lg text-[13px] text-a-text-1 focus:outline-none focus:border-a-accent"
+                autoComplete="email"
               />
-            </div>
-            <div>
-              <label className="block mb-1.5">Password</label>
-              <input
+            </Field>
+            <Field label="Password" required>
+              <Input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-a-subtle border border-a-border rounded-lg text-[13px] text-a-text-1 focus:outline-none focus:border-a-accent"
+                autoComplete="current-password"
               />
-            </div>
+            </Field>
 
             {authError && (
-              <p className="text-[13px] font-medium text-a-danger bg-a-danger-bg border border-a-border rounded-lg px-3 py-2">
+              <p className="text-[13px] font-medium text-a-danger bg-a-danger-bg border border-a-border rounded-[8px] px-3 py-2">
                 {authError}
               </p>
             )}
 
-            <button
-              type="submit"
-              className="admin-press w-full py-2.5 bg-a-ink-btn hover:bg-a-ink-btn-hover text-a-on-ink font-medium text-[13px] rounded-lg cursor-pointer"
-            >
+            <Button type="submit" variant="primary" loading={signingIn} className="w-full">
               Sign In
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 pt-5 border-t border-a-border">
             <p className="text-[12px] font-medium text-a-text-3 mb-2.5">
               Quick-fill staff account
             </p>
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-a-sidebar">
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-[10px] bg-a-subtle border border-a-border">
               <button
                 type="button"
                 onClick={() => {
                   setEmail("owner@noksha.bd");
                   setPassword("NokshaOwner2026!");
                 }}
-                className="admin-press px-2 py-1.5 rounded-lg bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer"
+                className="admin-press min-h-[34px] px-2 py-1.5 rounded-[7px] bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer shadow-[var(--a-shadow-card)]"
               >
                 Owner
               </button>
@@ -237,7 +328,7 @@ export default function AdminCommandCentre() {
                   setEmail("manager@noksha.bd");
                   setPassword("NokshaManager2026!");
                 }}
-                className="admin-press px-2 py-1.5 rounded-lg bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer"
+                className="admin-press min-h-[34px] px-2 py-1.5 rounded-[7px] bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer shadow-[var(--a-shadow-card)]"
               >
                 Manager
               </button>
@@ -247,7 +338,7 @@ export default function AdminCommandCentre() {
                   setEmail("support@noksha.bd");
                   setPassword("NokshaSupport2026!");
                 }}
-                className="admin-press px-2 py-1.5 rounded-lg bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer"
+                className="admin-press min-h-[34px] px-2 py-1.5 rounded-[7px] bg-a-surface text-a-text-1 text-[12px] font-medium cursor-pointer shadow-[var(--a-shadow-card)]"
               >
                 Support
               </button>
@@ -277,92 +368,30 @@ export default function AdminCommandCentre() {
       `• Most Viewed Piece: ${topPiece?.name ?? "N/A"} (${topPiece?.viewsCount ?? 0} views)`,
       `• Unrecovered Carts: ${metrics.unrecoveredCarts.length} (${formatBDT(metrics.abandonedValue)} at risk)`,
     ].join("\n");
-    copyText(summary, "Daily digest copied to clipboard");
+    copyText(summary, "Sales digest copied to clipboard");
   };
 
-  const navGroups: {
-    group: string;
-    items: {
-      id: AdminTab;
-      label: string;
-      icon: React.ReactNode;
-      badge?: number;
-      alertBadge?: boolean;
-    }[];
-  }[] = [
-    {
-      group: "Overview",
-      items: [
-        { id: "overview", label: "Command Overview", icon: <Activity className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
-        { id: "analytics", label: "Analytics & Funnel", icon: <BarChart3 className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
-      ],
-    },
-    {
-      group: "Commerce",
-      items: [
-        {
-          id: "orders",
-          label: "Orders Pipeline",
-          icon: <ShoppingBag className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
-          badge: metrics.pendingOrdersCount,
-        },
-        {
-          id: "cancellations",
-          label: "Cancellation Requests",
-          icon: <XCircle className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
-          badge: data.orders.filter((o) => o.cancellationRequested).length,
-          alertBadge: true,
-        },
-        {
-          id: "collections",
-          label: "Drops & Categories",
-          icon: <Layers className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
-          badge: data.collections.length,
-        },
-        {
-          id: "products",
-          label: "Products & Inventory",
-          icon: <Package className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
-          badge: metrics.lowStockProducts.length,
-        },
-      ],
-    },
-    {
-      group: "Customers",
-      items: [
-        { id: "customers", label: "Customers CRM", icon: <Users className="w-4 h-4 shrink-0" strokeWidth={1.75} />, badge: data.customers.length },
-        {
-          id: "abandoned",
-          label: "Abandoned Carts",
-          icon: <TrendingDown className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
-          badge: metrics.unrecoveredCarts.length,
-        },
-        {
-          id: "leads",
-          label: "Waitlist & Leads",
-          icon: <Sparkles className="w-4 h-4 shrink-0" strokeWidth={1.75} />,
-          badge: data.leads.filter((l) => l.status === "new").length,
-        },
-        { id: "promos", label: "Promo Codes", icon: <Tag className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
-      ],
-    },
-    {
-      group: "Workspace",
-      items: [
-        { id: "content", label: "Site Content CMS", icon: <FileText className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
-        { id: "staff", label: "Staff & Roles", icon: <Shield className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
-        { id: "audit", label: "Activity Audit Log", icon: <Settings className="w-4 h-4 shrink-0" strokeWidth={1.75} /> },
-      ],
-    },
-  ];
-
-  const visibleGroups = navGroups
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((tab) => canAccessSection(data.user.role, tab.id)),
-    }))
-    .filter((g) => g.items.length > 0);
+  const visibleGroups = buildNavGroups(data, metrics);
   const navItems = visibleGroups.flatMap((g) => g.items);
+  const currentNav = navItems.find((n) => n.id === activeTab);
+
+  // Active sub-entity breadcrumb (e.g. Orders / NK-KZRST87)
+  const subBreadcrumb =
+    activeTab === "orders"
+      ? queryParams.get("order")
+      : activeTab === "customers"
+      ? queryParams.get("customer")
+      : activeTab === "products"
+      ? queryParams.get("edit")
+      : null;
+
+  const clearSubBreadcrumb = () => {
+    if (activeTab === "orders") setQueryParam("order", null);
+    if (activeTab === "customers") setQueryParam("customer", null);
+    if (activeTab === "products") setQueryParam("edit", null);
+  };
+
+  const dateRange = queryParams.get("range") || "30d";
 
   return (
     <AdminContext.Provider
@@ -396,152 +425,48 @@ export default function AdminCommandCentre() {
           printingSlipOrders.length > 0 ? "print:hidden" : ""
         }`}
       >
-        {/* Left Studio Sidebar — Fixed / Non-Scrolling on Desktop, Regular Weight */}
-        <aside className="w-full lg:w-[248px] lg:h-screen lg:overflow-hidden bg-a-sidebar border-b lg:border-b-0 lg:border-r border-a-border shrink-0 flex flex-col justify-between select-none">
-          <div>
-            <div className="px-4 h-14 border-b border-a-border flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-2">
-                <img
-                  src="/brand/noksha-logo.png"
-                  alt="NOKSHA"
-                  className="h-7 w-auto object-contain"
-                />
-              </Link>
-              <Link
-                href="/"
-                target="_blank"
-                aria-label="Open Live Storefront"
-                className="admin-press p-1.5 rounded-lg text-a-text-3 hover:text-a-text-1 hover:bg-a-subtle"
-              >
-                <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
-              </Link>
-            </div>
+        <Sidebar
+          groups={visibleGroups}
+          activeTab={activeTab}
+          onSelectTab={(tab) => setActiveTab(tab)}
+          onOpenSearch={() => setPaletteOpen(true)}
+          user={data.user}
+          refreshing={refreshing}
+          onRefresh={refresh}
+          onLogout={logout}
+        />
 
-            <nav className="p-2.5 flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible">
-              {visibleGroups.map((group) => (
-                <div key={group.group} className="flex lg:flex-col gap-0.5 shrink-0">
-                  <p className="hidden lg:block px-2.5 pb-1 text-[12px] font-normal uppercase tracking-[0.04em] text-a-text-3">
-                    {group.group}
-                  </p>
-                  {group.items.map((item) => {
-                    const active = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setActiveTab(item.id)}
-                        className={`admin-press relative flex items-center justify-between gap-2 px-2.5 h-[34px] rounded-lg text-[14px] font-normal whitespace-nowrap cursor-pointer ${
-                          active
-                            ? "bg-a-surface text-a-text-1 shadow-[var(--a-shadow-card)] ring-1 ring-a-border"
-                            : "text-a-text-2 hover:text-a-text-1 hover:bg-a-subtle"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2.5 truncate">
-                          <span className={active ? "text-a-accent" : "text-a-text-3"}>
-                            {item.icon}
-                          </span>
-                          <span className="truncate">{item.label}</span>
-                        </span>
-                        {item.badge !== undefined && item.badge > 0 && (
-                          <span
-                            className={`font-num px-2 py-[1px] rounded-full text-[12px] font-normal shrink-0 ${
-                              item.alertBadge
-                                ? "bg-a-danger-bg text-a-danger"
-                                : active
-                                ? "bg-a-sidebar text-a-text-1"
-                                : "bg-a-subtle text-a-text-3"
-                            }`}
-                          >
-                            {item.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-3 border-t border-a-border hidden lg:block space-y-2.5">
-            <div className="flex items-center gap-2.5 px-1">
-              <div className="w-7 h-7 rounded-full bg-a-ink-btn text-a-on-ink flex items-center justify-center text-[12px] font-normal shrink-0">
-                {data.user.name.slice(0, 1).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-normal text-a-text-1 truncate">{data.user.name}</p>
-                <p className="text-[12px] text-a-text-3 font-normal truncate capitalize">
-                  {data.user.role}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-1.5">
-              <button
-                type="button"
-                onClick={refresh}
-                className="admin-press flex-1 py-1.5 px-2.5 rounded-lg bg-a-surface hover:bg-a-subtle text-a-text-1 border border-a-border text-[12px] font-normal flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <RefreshCw className={`w-3 h-3 text-a-text-3 ${refreshing ? "animate-spin" : ""}`} />
-                Sync
-              </button>
-              <button
-                type="button"
-                onClick={logout}
-                className="admin-press py-1.5 px-2.5 rounded-lg bg-a-surface hover:bg-a-danger-bg text-a-text-2 hover:text-a-danger border border-a-border text-[12px] font-normal flex items-center gap-1.5 cursor-pointer"
-              >
-                <LogOut className="w-3 h-3" />
-                Out
-              </button>
-            </div>
-          </div>
-        </aside>
+        <MobileNavDrawer
+          open={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+          groups={visibleGroups}
+          activeTab={activeTab}
+          onSelectTab={(tab) => setActiveTab(tab)}
+          user={data.user}
+          onRefresh={refresh}
+          onLogout={logout}
+        />
 
         <div className="admin-scroll flex-1 min-w-0 lg:h-screen lg:overflow-y-auto">
-          <header className="sticky top-0 z-20 bg-a-canvas/90 backdrop-blur-md border-b border-a-border px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <h1 className="text-[16px] font-semibold tracking-[-0.01em] text-a-text-1 truncate">
-                {navItems.find((n) => n.id === activeTab)?.label}
-              </h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-a-surface border border-a-border text-[12px] text-a-text-3">
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    data.supabaseEnabled ? "bg-a-success" : "bg-a-accent"
-                  }`}
-                />
-                {data.supabaseEnabled ? "Supabase Cloud Sync" : "Local SQLite"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {data.user.role === "owner" && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    postAction(
-                      { action: "clear_demo_data", includeCatalog: false },
-                      "Demo orders, leads & analytics cleared to 0!"
-                    )
-                  }
-                  className="admin-press px-3 py-1.5 rounded-lg bg-a-surface hover:bg-a-danger-bg text-a-text-2 hover:text-a-danger border border-a-border text-[12px] font-medium hidden md:flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Reset Demo Data
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={copyDailyDigest}
-                className="admin-press px-3 py-1.5 rounded-lg bg-a-ink-btn hover:bg-a-ink-btn-hover text-a-on-ink text-[13px] font-medium flex items-center gap-1.5 cursor-pointer"
-              >
-                <Copy className="w-3.5 h-3.5 text-a-accent" />
-                <span className="hidden sm:inline">Copy Sales Digest</span>
-                <span className="sm:hidden">Digest</span>
-              </button>
-            </div>
-          </header>
+          <TopBar
+            currentNav={currentNav}
+            subBreadcrumb={subBreadcrumb}
+            onClearSubBreadcrumb={clearSubBreadcrumb}
+            showDateRange={activeTab === "overview" || activeTab === "analytics"}
+            dateRange={dateRange}
+            onDateRangeChange={(val) => setQueryParam("range", val === "30d" ? null : val)}
+            lastSyncedAt={lastSyncedAt}
+            refreshing={refreshing}
+            supabaseEnabled={data.supabaseEnabled}
+            onRefresh={refresh}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
+            onOpenSearch={() => setPaletteOpen(true)}
+            onOpenShortcuts={() => setShortcutsOpen(true)}
+          />
 
-          <div
+          <main
             key={activeTab}
-            className="admin-surface-enter p-4 sm:p-6 max-w-[1280px] mx-auto space-y-6"
+            className="admin-surface-enter p-4 sm:p-6 pb-24 lg:pb-8 max-w-[1280px] mx-auto space-y-6"
           >
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "analytics" && <AnalyticsTab />}
@@ -556,16 +481,62 @@ export default function AdminCommandCentre() {
             {activeTab === "content" && <ContentTab />}
             {activeTab === "staff" && <StaffTab />}
             {activeTab === "audit" && <AuditTab />}
-          </div>
+          </main>
         </div>
 
-        {/* Stacked Toasts */}
+        <MobileBottomBar
+          navItems={navItems}
+          activeTab={activeTab}
+          onSelectTab={(tab) => setActiveTab(tab)}
+          onOpenMore={() => setMobileNavOpen(true)}
+        />
+
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          data={data}
+          navItems={navItems}
+          onNavigate={(tab, extra) => setActiveTab(tab, extra)}
+          onNewAction={(tab) => {
+            setActiveTab(tab);
+            setTimeout(() => setTriggerNewCounter((c) => c + 1), 30);
+          }}
+          onCopyDigest={copyDailyDigest}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
+          onRequestResetDemo={() => setConfirmResetOpen(true)}
+        />
+
+        <ShortcutsDialog
+          open={shortcutsOpen}
+          onClose={() => setShortcutsOpen(false)}
+        />
+
+        <ConfirmDialog
+          open={confirmResetOpen}
+          title="Reset demo orders, leads & analytics?"
+          description="This permanently clears all demo Orders, Customers, Leads, Abandoned Carts, and Analytics counters to 0 while keeping your product catalog intact."
+          confirmLabel="Reset demo data"
+          danger
+          loading={resetLoading}
+          onCancel={() => setConfirmResetOpen(false)}
+          onConfirm={async () => {
+            setResetLoading(true);
+            await postAction(
+              { action: "clear_demo_data", includeCatalog: false },
+              "Demo orders, leads & analytics cleared to 0"
+            );
+            setResetLoading(false);
+            setConfirmResetOpen(false);
+          }}
+        />
+
+        {/* Sonner-Inspired Stacked Toasts */}
         {toasts.length > 0 && (
-          <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 items-end">
+          <div className="fixed bottom-16 lg:bottom-5 right-4 lg:right-5 z-50 flex flex-col gap-2 items-end print:hidden">
             {toasts.map((t) => (
               <div
                 key={t.id}
-                className="admin-toast flex items-center gap-3 px-4 py-2.5 rounded-xl bg-a-ink-btn text-a-on-ink border border-a-border text-[13px] font-normal shadow-[var(--a-shadow-pop)]"
+                className="admin-toast flex items-center gap-3 px-4 py-2.5 rounded-[10px] bg-a-ink-btn text-a-on-ink border border-a-border text-[13px] font-normal shadow-[var(--a-shadow-pop)]"
               >
                 <span
                   className={`h-2 w-2 rounded-full shrink-0 ${
@@ -576,7 +547,7 @@ export default function AdminCommandCentre() {
                       : "bg-a-success"
                   }`}
                 />
-                <span>{t.message}</span>
+                <span className="font-num">{t.message}</span>
                 {t.action && (
                   <button
                     type="button"
@@ -584,7 +555,7 @@ export default function AdminCommandCentre() {
                       t.action?.onClick();
                       setToasts((prev) => prev.filter((item) => item.id !== t.id));
                     }}
-                    className="admin-press ml-1 px-2.5 py-0.5 rounded-md bg-a-surface/15 hover:bg-a-surface/25 text-a-on-ink text-[12px] font-medium cursor-pointer"
+                    className="admin-press ml-1 px-2.5 py-1 rounded-[6px] bg-a-surface/15 hover:bg-a-surface/25 text-a-on-ink text-[12px] font-medium cursor-pointer"
                   >
                     {t.action.label}
                   </button>
