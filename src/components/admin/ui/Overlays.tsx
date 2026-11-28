@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MoreHorizontal, X } from "lucide-react";
+
+/* Renders overlays on document.body so ancestor transforms (page entrance
+   animation) can't shrink `position: fixed` to the content area. The
+   `admin-ui` wrapper keeps the design tokens in scope. */
+function Portal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(<div className="admin-ui">{children}</div>, document.body);
+}
 import { Button, IconButton } from "./Primitives";
 import { Input, Field } from "./Forms";
 
@@ -103,6 +114,7 @@ export function Drawer({
       : "right-0 border-l border-a-border admin-drawer-right";
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-40 flex print:hidden">
       <div
         className="admin-backdrop-enter fixed inset-0 bg-a-overlay"
@@ -158,6 +170,7 @@ export function Drawer({
         />
       )}
     </div>
+    </Portal>
   );
 }
 
@@ -184,7 +197,8 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
+    <Portal>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 print:hidden">
       <div
         className="admin-backdrop-enter fixed inset-0 bg-a-overlay"
         onClick={onClose}
@@ -213,6 +227,7 @@ export function Dialog({
         )}
       </div>
     </div>
+    </Portal>
   );
 }
 
